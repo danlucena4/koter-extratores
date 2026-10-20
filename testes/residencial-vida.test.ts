@@ -136,9 +136,17 @@ describe("vida", () => {
       [
         "MAPFRE VIDA S.A.",
         "Nº da Apólice: 1234567890123",
+        "Data de Início de Vigência Apólice 24h do dia: 10/01/2026 Término de Vigência Apólice 24h do dia: 10/01/2027",
+        "DADOS DO SEGURADO TITULAR",
+        "Nome Completo: FULANA DE TAL CPF: 111.444.777-35",
         "Estado Civil: SOLTEIRO Sexo: FEMININO",
         "Data de Nascimento: 01/02/1990",
         "Profissão: ADVOGADO Faixa de Renda: DE R$ 5.000,00 A R$ 10.000,00",
+        "ENDEREÇO RESIDENCIAL DO SEGURADO",
+        "Logradouro: RUA DAS FLORES Número: 120",
+        "Bairro: CENTRO CEP: 40000-000",
+        "Cidade: SALVADOR UF: BA",
+        "Complemento: AP 3",
         "Coberturas Capital Segurado Prêmio Líquido Carência/Franquia",
         "Morte (M) 100.000,00 30,00 24 / Não",
         "Invalidez Permanente Total ou Parcial por Acidente (IPA) 100.000,00 5,00",
@@ -148,6 +156,8 @@ describe("vida", () => {
     );
     expect(r?.segurado_nascimento?.iso).toBe("1990-02-01");
     expect([r?.segurado_sexo, r?.profissao]).toEqual(["FEMININO", "ADVOGADO"]);
+    expect([r?.segurado_nome, r?.segurado_documento, r?.vigencia_fim?.iso]).toEqual(["FULANA DE TAL", "11144477735", "2027-01-10"]);
+    expect(r?.segurado_endereco).toEqual({ cep: "40000000", logradouro: "RUA DAS FLORES", numero: "120", complemento: "AP 3", bairro: "CENTRO", cidade: "SALVADOR", uf: "BA" });
     expect(r?.coberturas.map((c) => c.descricao)).toEqual(["Morte", "Invalidez Permanente Total ou Parcial por Acidente"]);
     expect(r?.capital_morte?.centavos).toBe(10000000);
   });
@@ -156,6 +166,13 @@ describe("vida", () => {
     const linhas = [
       "Allianz Vida Individual",
       "Nº Apólice: 1234567890123456789",
+      "SEGURADO : FULANA DE TAL",
+      "ENDEREÇO: R. DAS FLORES, 120, APTO 3",
+      "CPF : 111.444.777-35",
+      "E-MAIL: fulana@exemplo.com CEP: 40000-000",
+      "BAIRRO: CENTRO TELEFONE: 71999999999",
+      "CIDADE : Salvador/Bahia",
+      "VIGÊNCIA ANUAL: das 24H de 10/01/2026 às 24H de 10/01/2027",
       "PACOTE CONTRATADO: Essencial PROFISSÃO: Coordenador",
       "COBERTURAS (R$)",
       "CAPITAL",
@@ -167,6 +184,8 @@ describe("vida", () => {
     ];
     const r = lerVidaAllianz(linhas, "1234567890123456789");
     expect(r?.profissao).toBe("Coordenador");
+    expect(r?.vigencia_fim?.iso).toBe("2027-01-10");
+    expect(r?.segurado_endereco).toEqual({ cep: "40000000", logradouro: "R. DAS FLORES", numero: "120", complemento: "APTO 3", bairro: "CENTRO", cidade: "Salvador", uf: "BA" });
     expect(r?.coberturas.map((c) => c.valor.centavos)).toEqual([10000000, 5000000]);
     expect(r?.assistencias).toEqual(["Funeral Ampliada"]);
     expect(lerVidaAllianz(linhas, "1234567890123456780")).toBeNull();
@@ -177,6 +196,14 @@ describe("vida", () => {
       [
         "Apólice - Ramo 93 Vida",
         "Apólice: 12345678",
+        "Nome do(a) Segurado(a) CPF/CNPJ Nº da Sorte",
+        "FULANA DE TAL 111.444.777-35 12345",
+        "Endereço",
+        "RUA DAS FLORES , 120",
+        "Bairro Cidade UF CEP",
+        "CENTRO SALVADOR BA 40000-000",
+        "Vigência do Seguro Data de Emissão",
+        "Das 00:00hs de 10/01/2026 às 23:59hs de 10/01/2027 05/01/2026",
         "Data de Nascimento",
         "01/02/1990",
         "Cap.Segurado(R$) Prêmio(R$) Carência Franquia",
@@ -194,5 +221,8 @@ describe("vida", () => {
     expect(r?.segurado_nascimento?.iso).toBe("1990-02-01");
     expect(r?.coberturas.map((c) => c.descricao)).toEqual(["Morte", "Invalidez Permanente Total ou Parcial por Acidente"]);
     expect(r?.assistencias).toEqual(["ASSISTENCIA FUNERAL TITULAR I"]);
+    expect([r?.segurado_nome, r?.segurado_documento, r?.vigencia_fim?.iso]).toEqual(["FULANA DE TAL", "11144477735", "2027-01-10"]);
+    /* Bairro e cidade colados: so o CEP e a rua com numero. */
+    expect(r?.segurado_endereco).toEqual({ cep: "40000000", logradouro: "RUA DAS FLORES", numero: "120", complemento: null, bairro: null, cidade: null, uf: null });
   });
 });
