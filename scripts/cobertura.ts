@@ -9,7 +9,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { pastaDosPdfs } from "./pasta.js";
 import { linhasDoPdf } from "../src/pdf-texto.js";
-import { lerApoliceMapfreQualquer } from "../src/mapfre.js";
+import { lerApoliceMapfreQualquer } from "../src/compat.js";
 import { lerApoliceYelum } from "../src/yelum.js";
 import { lerApoliceAllianz } from "../src/allianz.js";
 import { lerApolicePorto } from "../src/porto.js";

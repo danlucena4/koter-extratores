@@ -16,34 +16,59 @@ o consumidor.
 - Valores saem **crus** (o texto da seguradora). Tradução para as opções da cotação, "a
   conferir" e padrões são de quem consome.
 
-## O que tem
+## Uso: uma entrada só
 
-| Módulo | O que lê |
-|---|---|
-| `pdf-texto` | texto do PDF em linhas, ou em pedaços com posição (FlateDecode; fontes com `/ToUnicode`, inclusive compostas; ignora imagens) |
-| `mapfre` | apólice (kit e layout antigo) e **proposta** (sexo, nascimento, estado civil e Atividade do segurado) |
-| `yelum` | apólice Yelum e Aliro (veículo, perfil, vínculo do condutor, residentes 18/25, isenção) |
-| `allianz` | apólice de auto (quadro, questionário: reside em, 18 a 25, garagens da moto) |
-| `allianz-residencial` | apólice residencial |
-| `porto` | apólice Porto/Azul/Itaú (segurado, motorista principal, pernoite, combustível, uso, endereço) |
-| `hdi` | documento de auto (HTML, o mesmo quadro do PDF): segurado, veículo, perfil, guarda do veículo, condutor |
-| `bradesco` | apólice de auto (seções numa linha só): segurado, condutor, veículo, isenção, Questionário de Risco |
-| `zurich` | apólice de auto pelo Questionário Perfil (residência, garagens com portão, trabalho, escola) |
-| `tokio` | apólice de auto (segurado, condutor determinado, residentes 18 a 25, garagem, uso, placa, chassi, bônus, CI) |
-| `residencial` | apólice residencial MAPFRE, HDI, Tokio e Porto (endereço do risco, tipo, ocupação, coberturas + LMI, assistência) |
-| `vida` | apólice de vida MAPFRE, Allianz e Yelum (nascimento, sexo, profissão, renda, coberturas + capital) |
-| `tabela` | dinheiro pt-BR e a tabela de coberturas (descrição que quebra linha + valores) comum aos leitores |
+```ts
+import { extrairDocumento } from "koter-extratores";
+
+const doc = extrairDocumento(bytesDoPdf);                                  // reconhece sozinho
+const doc = extrairDocumento(bytesDoPdf, { numero_apolice: "1234567890123" }); // com trava
+const prop = extrairDocumento(bytesDaProposta, { cpf_segurado: "11144477735" });
+```
+
+`extrairDocumento` reconhece a **seguradora** (marca no cabeçalho, CNPJ, desempate pela que
+aparece primeiro), o **ramo** (auto, residencial, vida) e o **tipo** (apólice, endosso,
+proposta), lê o número impresso e devolve tudo num formato só (`DocumentoExtraido`, em
+`src/modelo.ts`):
+
+- apólice: número, item, proposta, emissão, vigência, produto, tipo de seguro, apólice
+  renovada (número e seguradora);
+- segurado: nome, CPF/CNPJ, nascimento, sexo, estado civil, profissão, renda, e-mail,
+  telefones, endereço;
+- auto: veículo (marca, modelo, anos, placa, chassi, FIPE, combustível, 0 km, categoria,
+  blindagem, kit gás, alienação), uso, CEP e endereço de pernoite, bônus, CI, sinistros,
+  antifurto, modalidade e % da FIPE, condutor (com vínculo) e o questionário inteiro
+  (`respostas`: toda pergunta e resposta como impressas, além dos campos conhecidos);
+- coberturas (descrição, LMI, limite em texto, prêmio, franquia), assistências,
+  cláusulas, franquias (casco, vidros, faróis...), prêmio líquido e total, pagamento;
+- residencial (imóvel, tipo, ocupação, LMI básica) e vida (capital de morte, renda).
+
+| Seguradora | Auto | Endosso | Proposta | Residencial | Vida |
+|---|---|---|---|---|---|
+| MAPFRE | ✔ | | ✔ | ✔ | ✔ |
+| Porto / Itaú / Azul | ✔ (inclui Proteção Combinada Itaú) | | | ✔ (Porto) | |
+| Allianz | ✔ | ✔ | ✔ | ✔ | ✔ |
+| Yelum / Aliro | ✔ | | | | ✔ (Yelum) |
+| Tokio Marine | ✔ | | | ✔ | |
+| Zurich | ✔ | | | | |
+| Bradesco | ✔ (dois layouts) | | | | |
+| HDI | ✔ (PDF e documento HTML) | ✔ | | ✔ | |
 
 Pier, Youse e Justos não têm renovação própria.
 
-## Uso
+## O motor de PDF (`src/pdf/`)
 
-```ts
-import { linhasDoPdf, lerApoliceYelum } from "koter-extratores";
+Sem dependência (só `zlib`): objetos e **object streams**, filtros Flate/ASCII85/ASCIIHex/LZW
+(com preditores), árvore de páginas, fontes com **larguras reais** (`/Widths`, `/W`),
+`/ToUnicode`, `/Differences` e a **codificação embutida** no programa da fonte (CFF e Type1),
+estado gráfico e de texto completo (`cm`, `Tc`, `Tw`, `Tz`, `TJ`, `Tm`...), formulários e
+campos preenchidos. As linhas saem da geometria (espaço onde há vão, texto girado à parte,
+falso negrito descartado), com a **posição de cada palavra**, o que permite ler quadros de
+"rótulos em cima, valores embaixo" pela coluna (`quadroPorColuna`, `tabelaPorColunas`).
 
-const linhas = linhasDoPdf(bytesDoPdf);
-const lida = lerApoliceYelum(linhas, numeroDaApolice); // null se o PDF nao for desta apolice
-```
+As funções de antes (`lerApoliceYelum`, `lerApoliceBradesco`, `linhasDoPdf`...) continuam com a
+mesma assinatura; as de MAPFRE auto, Bradesco e Zurich usam os leitores novos por baixo
+(`src/compat.ts`).
 
 Instalação (direto do git):
 
@@ -75,6 +100,8 @@ export EXTRATORES_PDFS=C:/projeto-api/.data/pdfs-renovacao
 npx tsx scripts/layout.ts mapfre saida.txt     # layout mascarado (palavra que varia vira ▒, digito vira #)
 npx tsx scripts/respostas.ts hdi "Guarda|Utiliza"   # linhas de pergunta e resposta, sem nome/CPF/placa
 npx tsx scripts/cobertura.ts yelum             # quanto o leitor acha, campo a campo
+npx tsx scripts/regressao.ts gravar antes      # roda tudo sobre os PDFs reais e grava (fora do git)
+npx tsx scripts/regressao.ts comparar antes depois   # o que mudou, so o caminho do campo
 ```
 
 O levantamento de 2026-10-19 (o que cada seguradora imprime e o que não imprime) está no

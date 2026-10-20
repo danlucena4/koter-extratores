@@ -146,7 +146,11 @@ export function lerApoliceYelum(linhas: readonly string[], policyNumber: string)
   const propLinha = prop.valor ?? "";
   const propNasc = data(propLinha);
   const propEhSegurado = /PROPRIO\s+SEGURADO/i.test(propLinha);
-  const propSexo = prop.indice >= 0 ? (/^(Masculino|Feminino)\b/i.exec(vazio(linhas[prop.indice + 1]) ?? "")?.[1] ?? null) : null;
+  /* O sexo vem na mesma linha ("dd/mm/aaaa 40 Masculino PROPRIO SEGURADO") ou, no texto antigo, na de baixo. */
+  const propSexo =
+    prop.indice < 0
+      ? null
+      : (/\b(Masculino|Feminino)\b/i.exec(propLinha)?.[1] ?? /^(Masculino|Feminino)\b/i.exec(vazio(linhas[prop.indice + 1]) ?? "")?.[1] ?? null);
 
   return {
     numero: impresso,

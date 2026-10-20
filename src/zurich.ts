@@ -79,6 +79,6 @@ export function lerApoliceZurichDosPedacos(grupos: readonly (readonly PedacoDeTe
 }
 
 /** Le o PDF (bytes); `null` quando o numero impresso nao e o da apolice pedida. */
-export function lerApoliceZurich(bytes: Uint8Array, numeroApolice: string): ApoliceZurichLida | null {
+export function lerApoliceZurichLegado(bytes: Uint8Array, numeroApolice: string): ApoliceZurichLida | null {
   return lerApoliceZurichDosPedacos(pedacosDoPdf(bytes), numeroApolice);
 }

@@ -248,7 +248,7 @@ const VALOR_PORTO = /R\$\s*((?:\d{1,3}(?:\.\d{3})+|\d+),\d{2})/g;
  * seguinte seja outra linha so de valores (ai e a descricao do proximo item).
  */
 export function tabelaDeCoberturasPorto(bloco: readonly string[]): ItemDeCobertura[] {
-  const linhas = bloco.map((l) => l.trim()).filter((l) => l.length > 0 && !/^\d+$/.test(l) && !/^(PREÇO \(R\$\)|NOME DA COBERTURA|L\.M\.I|Cobertura:|\(R\$\))/i.test(l));
+  const linhas = bloco.map((l) => l.trim()).filter((l) => l.length > 0 && !/^\d+$/.test(l) && !/^(?:\d\s+)?(PREÇO \(R\$\)|NOME DA COBERTURA|L\.M\.I|Cobertura:|\(R\$\))/i.test(l));
   const valores = (l: string) => [...l.matchAll(VALOR_PORTO)].map((m) => m[1] as string);
   const soValores = (l: string) => valores(l).length >= 2 && l.replace(VALOR_PORTO, "").trim().length === 0;
   const itens: ItemDeCobertura[] = [];

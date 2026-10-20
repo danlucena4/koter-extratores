@@ -6,6 +6,7 @@
  * Saida: o segurado (nascimento, sexo, estado civil, profissao, renda como a
  * cia escreve), as coberturas (descricao + capital) e o capital de MORTE.
  */
+import { tabelaPorValores } from "./leitura.js";
 import { dinheiroPtBr, tabelaDeCoberturas, type ItemDeCobertura } from "./tabela.js";
 import type { DataCia, Dinheiro, EnderecoLido } from "./tipos.js";
 
@@ -181,25 +182,24 @@ export function lerVidaYelum(linhas: readonly string[], policyNumber: string): V
   const pedido = digitos(policyNumber);
   if (pedido.length < 8 || !linhas.some((l) => digitos(l).includes(pedido))) return null;
 
-  const i = linhas.findIndex((l) => /^Cap\.Segurado\(R\$\)/i.test(l));
+  /*
+   * Coberturas: de "Cap.Segurado(R$)" (sozinho ou no fim do cabecalho) ate os
+   * servicos complementares. A linha traz os valores no fim ("Morte 100.000,00
+   * 30,00 - -") ou na linha de baixo; a descricao pode quebrar em volta.
+   */
+  const i = linhas.findIndex((l) => /Cap\.Segurado\(R\$\)/i.test(l));
   const fim = linhas.findIndex((l, k) => k > i && /^SERVIÇOS COMPLEMENTARES/i.test(l));
   const bloco = i < 0 ? [] : linhas.slice(i + 1, fim < 0 ? i + 20 : fim);
-  const soValores = (l: string) => /^[\d.,\s-]+$/.test(l.trim()) && /\d,\d{2}/.test(l);
-  const itens: ItemDeCobertura[] = [];
-  bloco.forEach((l, k) => {
-    if (soValores(l)) return;
-    const prox = bloco[k + 1] ?? "";
-    if (soValores(prox)) {
-      const [capital, ...outros] = prox.trim().split(/\s+/).filter((x) => /\d,\d{2}/.test(x));
+  const itens: ItemDeCobertura[] = tabelaPorValores(bloco, { valor: /^(?:\d[\d.]*,\d{2}|-)$/ })
+    .map((t) => {
+      const [capital, ...outros] = t.valores.filter((x) => /\d,\d{2}/.test(x));
       const valor = dinheiroPtBr(capital);
-      if (valor !== null) itens.push({ descricao: l.trim(), valor, outros_valores: outros });
-      return;
-    }
-    const ultimo = itens[itens.length - 1];
-    if (ultimo !== undefined && soValores(bloco[k - 1] ?? "")) ultimo.descricao = `${ultimo.descricao} ${l.trim()}`;
-  });
-  const iNasc = linhas.findIndex((l) => /^Data de Nascimento$/i.test(l.trim()));
-  const nasc = iNasc < 0 ? null : (linhas.slice(iNasc + 1, iNasc + 4).find((l) => /^\d{2}\/\d{2}\/\d{4}$/.test(l.trim())) ?? null);
+      return valor === null ? null : { descricao: t.descricao, valor, outros_valores: outros };
+    })
+    .filter((x): x is ItemDeCobertura => x !== null && x.descricao.length > 0);
+  /* "Data de Nascimento" sozinho ou com outros rotulos na linha ("... Renova Apólice Nº Seguradora"): a data vem embaixo. */
+  const iNasc = linhas.findIndex((l) => /^Data de Nascimento\b/i.test(l.trim()));
+  const nasc = iNasc < 0 ? null : (linhas.slice(iNasc + 1, iNasc + 4).map((l) => /^(\d{2}\/\d{2}\/\d{4})\b/.exec(l.trim())?.[1]).find((x) => x !== undefined) ?? null);
   /* Quadro do segurado: "Nome do(a) Segurado(a) CPF/CNPJ ..." e os valores na linha de baixo. */
   const iSeg = linhas.findIndex((l) => /^Nome do\(a\) Segurado\(a\)/i.test(l));
   const linhaSeg = iSeg < 0 ? "" : (linhas[iSeg + 1] ?? "");

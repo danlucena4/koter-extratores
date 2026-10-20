@@ -3,7 +3,7 @@
  * formato dos 15 PDFs da "A vencer", 2026-10-19).
  */
 import { describe, expect, it } from "vitest";
-import { lerApoliceBradesco } from "../src/bradesco.js";
+import { lerApoliceBradesco } from "../src/compat.js";
 
 const linhas = [
   "CORRETOR: CORRETORA TESTE",

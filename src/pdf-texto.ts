@@ -23,6 +23,9 @@
  * So no servidor: nao entra em `contrato.ts` (navegador).
  */
 import { inflateSync } from "node:zlib";
+import { glifosDoPdf, linhasPosicionadas, pedacosDosGlifos, type LinhaPosicionada } from "./pdf/motor.js";
+
+export type { LinhaPosicionada, PalavraPosicionada } from "./pdf/motor.js";
 
 const TOKEN =
   /(-?\d*\.?\d+)\s+(-?\d*\.?\d+)\s+T[dD]|(-?\d*\.?\d+)\s+(-?\d*\.?\d+)\s+(-?\d*\.?\d+)\s+(-?\d*\.?\d+)\s+(-?\d*\.?\d+)\s+(-?\d*\.?\d+)\s+Tm|\(((?:\\.|[^\\)])*)\)\s*Tj|\[((?:\\.|[^\]])*)\]\s*TJ|\bBT\b|\/([^\s/<>[\]()]+)\s+-?\d*\.?\d+\s+Tf|<([0-9A-Fa-f\s]*)>\s*Tj/g;
@@ -355,8 +358,45 @@ function pareceBinario(conteudo: string): boolean {
   return fora > amostra.length * 0.1;
 }
 
-/** Todas as linhas de texto do PDF, stream por stream. `[]` quando nao ha texto. */
+/**
+ * As linhas de cada pagina com as palavras posicionadas (motor de
+ * `pdf/motor.ts`: larguras reais das fontes, object streams, texto girado).
+ */
+export function paginasDoPdf(bytes: Uint8Array): LinhaPosicionada[][] {
+  try {
+    return glifosDoPdf(bytes).map((g, i) => linhasPosicionadas(g, i));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Todas as linhas de texto do PDF, pagina por pagina. `[]` quando nao ha
+ * texto. Usa o motor completo; se ele nao achar texto nenhum, cai na leitura
+ * antiga (stream por stream), que e mais tolerante a PDF corrompido.
+ */
 export function linhasDoPdf(bytes: Uint8Array): string[] {
+  const pos = paginasDoPdf(bytes).flat();
+  if (pos.length === 0) return linhasDoPdfLegado(bytes);
+  const linhas = pos.map((l) => l.texto);
+  /* As posicoes viajam junto, invisiveis: quem recebe so as linhas ainda pode ler quadros por coluna (`posicoesDe`). */
+  Object.defineProperty(linhas, POSICOES, { value: pos, enumerable: false });
+  return linhas;
+}
+
+const POSICOES = Symbol.for("koter-extratores.posicoes");
+
+/**
+ * As linhas posicionadas de um array vindo de `linhasDoPdf`; para linhas de
+ * outra origem (testes, texto puro), `null`.
+ */
+export function posicoesDe(linhas: readonly string[]): LinhaPosicionada[] | null {
+  const pos = (linhas as unknown as Record<symbol, LinhaPosicionada[] | undefined>)[POSICOES];
+  return pos !== undefined && pos.length === linhas.length ? pos : null;
+}
+
+/** A leitura antiga (stream por stream, sem largura de fonte). */
+export function linhasDoPdfLegado(bytes: Uint8Array): string[] {
   return streamsDeTexto(bytes).flatMap(({ conteudo, fontes }) => linhasDoConteudo(conteudo, fontes));
 }
 
@@ -365,6 +405,12 @@ export function linhasDoPdf(bytes: Uint8Array): string[] {
  * pagina). Para leitor de layout em colunas.
  */
 export function pedacosDoPdf(bytes: Uint8Array): PedacoDeTexto[][] {
+  try {
+    const novos = glifosDoPdf(bytes).map((g) => pedacosDosGlifos(g));
+    if (novos.some((p) => p.length > 0)) return novos;
+  } catch {
+    /* cai na leitura antiga */
+  }
   return streamsDeTexto(bytes).map(({ conteudo, fontes }) => pedacosDoConteudo(conteudo, fontes));
 }
 

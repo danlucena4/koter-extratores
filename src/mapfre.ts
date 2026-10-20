@@ -444,7 +444,7 @@ export function lerApoliceMapfreKit(linhas: readonly string[], numeroApolice: st
 }
 
 /** Qualquer dos dois layouts; `null` quando nenhum e o da apolice pedida. */
-export function lerApoliceMapfreQualquer(linhas: readonly string[], numeroApolice: string): ApoliceMapfreLida | null {
+export function lerApoliceMapfreQualquerLegado(linhas: readonly string[], numeroApolice: string): ApoliceMapfreLida | null {
   return lerApoliceMapfre(linhas, numeroApolice) ?? lerApoliceMapfreKit(linhas, numeroApolice);
 }
 

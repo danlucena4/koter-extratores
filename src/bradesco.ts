@@ -113,7 +113,7 @@ export interface ApoliceBradescoLida {
 }
 
 /** Le a apolice; `null` quando o numero impresso nao e o da apolice pedida. */
-export function lerApoliceBradesco(linhas: readonly string[], apolice: string): ApoliceBradescoLida | null {
+export function lerApoliceBradescoLegado(linhas: readonly string[], apolice: string): ApoliceBradescoLida | null {
   const s = secoesDoPdfBradesco(linhas);
   const ap = s.get("Dados da sua apólice");
   const numero = valor(ap, "Número da apólice", ROTULOS_APOLICE);
