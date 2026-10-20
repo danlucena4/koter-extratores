@@ -20,12 +20,18 @@ o consumidor.
 
 | Módulo | O que lê |
 |---|---|
-| `pdf-texto` | texto do PDF em linhas (FlateDecode; fontes com `/ToUnicode`, inclusive compostas; ignora imagens) |
+| `pdf-texto` | texto do PDF em linhas, ou em pedaços com posição (FlateDecode; fontes com `/ToUnicode`, inclusive compostas; ignora imagens) |
 | `mapfre` | apólice (kit e layout antigo) e **proposta** (sexo, nascimento, estado civil e Atividade do segurado) |
 | `yelum` | apólice Yelum e Aliro (veículo, perfil, vínculo do condutor, residentes 18/25, isenção) |
 | `allianz` | apólice de auto (quadro, questionário: reside em, 18 a 25, garagens da moto) |
 | `allianz-residencial` | apólice residencial |
 | `porto` | apólice Porto/Azul/Itaú (segurado, motorista principal, pernoite, combustível, uso, endereço) |
+| `hdi` | documento de auto (HTML, o mesmo quadro do PDF): segurado, veículo, perfil, guarda do veículo, condutor |
+| `bradesco` | apólice de auto (seções numa linha só): segurado, condutor, veículo, isenção, Questionário de Risco |
+| `zurich` | apólice de auto pelo Questionário Perfil (residência, garagens com portão, trabalho, escola) |
+
+Tokio Marine ainda não tem leitor: nenhum PDF foi baixado (o login da credencial cadastrada foi
+recusado). Pier, Youse e Justos não têm renovação própria.
 
 ## Uso
 
