@@ -18,3 +18,6 @@ export * from "./hdi.js";
 export * from "./bradesco.js";
 export * from "./zurich.js";
 export * from "./tokio.js";
+export * from "./tabela.js";
+export * from "./residencial.js";
+export * from "./vida.js";
