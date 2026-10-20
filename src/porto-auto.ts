@@ -38,7 +38,7 @@ import {
   telefones,
   vazio,
 } from "./leitura.js";
-import { autoVazio, condutor, pessoaCom, type CoberturaExtraida, type DocumentoExtraido, type FranquiaExtraida } from "./modelo.js";
+import { autoVazio, condutor, pessoaCom, residencialVazio, type CoberturaExtraida, type DocumentoExtraido, type FranquiaExtraida } from "./modelo.js";
 
 const ROT_APOLICE = ["Apólice", "Item", "Renova nº", "Classe de bônus", "Código C.I", "Data de emissão", "Proposta", "Vigência"];
 const ROT_SEGURADO = ["Segurado(a)", "Nome do segurado(a)", "Data de nascimento", "Data de nasc.", "Sexo", "CPF", "Endereço", "Bairro", "Estado", "Cidade", "CEP", "Tel. residencial", "Celular", "Tel. comercial", "E-mail"];
@@ -198,6 +198,6 @@ export function lerAutoPorto(doc: DocumentoExtraido, linhas: readonly string[], 
     residencial:
       res === null
         ? doc.residencial
-        : { imovel, tipo_imovel: vazio(res.get("Tipo de residência")), ocupacao: null, condominio_fechado: null, lmi_basica: coberturas.find((c) => /^Inc[êe]ndio/i.test(c.descricao))?.valor ?? null },
+        : { ...residencialVazio(), imovel, tipo_imovel: vazio(res.get("Tipo de residência")), ocupacao: null, condominio_fechado: null, lmi_basica: coberturas.find((c) => /^Inc[êe]ndio/i.test(c.descricao))?.valor ?? null },
   };
 }

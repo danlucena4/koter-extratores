@@ -134,7 +134,8 @@ export function lerVidaAllianz(linhas: readonly string[], apoliceSusep: string):
   if (!linhas.some((l) => /Allianz Vida/i.test(l))) return null;
   const itens = tabelaDeCoberturas(linhas, /^COBERTURAS \(R\$\)/i, /^ASSISTÊNCIAS \(R\$\)/i, {
     minimoDeValores: 1,
-    ignorar: /^(CAPITAL|PRÊMIO|Prêmio Líquido|R\$\s*[\d.,]+)$/i,
+    /* "Prêmio Líquido 865,97" (o total da tabela) nao e cobertura. */
+    ignorar: /^(CAPITAL|PRÊMIO|Prêmio Líquido|R\$\s*[\d.,]+)$|^Prêmio Líquido\b/i,
   });
   const assistencias = tabelaDeCoberturas(linhas, /^ASSISTÊNCIAS \(R\$\)/i, /^(Prêmio Líquido:|INFORMAÇÕES DE PAGAMENTO)/i, { minimoDeValores: 1 }).map((a) => a.descricao);
   const iSeg = linhas.findIndex((l) => /^SEGURADO\s*:/i.test(l));

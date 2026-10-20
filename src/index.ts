@@ -21,5 +21,6 @@ export * from "./tokio.js";
 export * from "./tabela.js";
 export * from "./residencial.js";
 export * from "./vida.js";
+export * from "./gerais.js";
 export * from "./documento.js";
 export * from "./compat.js";

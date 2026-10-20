@@ -121,11 +121,43 @@ export interface ResidencialExtraido {
   ocupacao: string | null;
   condominio_fechado: boolean | null;
   lmi_basica: Dinheiro | null;
+  /** Construcao como a cia escreve ("Alvenaria (superior)", "Alvenaria"). */
+  tipo_construcao: string | null;
+  /** O que esta segurado ("Predio e Conteudo", "Prédio + Conteúdo", "Edif.+Conteúdo"). */
+  bem_segurado: string | null;
+  /** O plano/perfil da assistencia ("GOLD APTO", "Plano Vip", "Completo"). */
+  plano_assistencia: string | null;
+  /** Limite maximo de garantia da apolice, quando impresso. */
+  lmg: Dinheiro | null;
+  /** Indenizacao a valor de novo: so quando o documento diz (resposta, clausula ou tipo de indenizacao). */
+  valor_de_novo: boolean | null;
+  /** Bonus como impresso ("03 Anos", "1"). */
+  bonus: string | null;
+  /** Questionario de risco: perguntas e respostas como impressas. */
+  respostas: Array<{ pergunta: string; resposta: string }>;
+}
+
+export interface BeneficiarioExtraido {
+  /** Nulo quando a cia quebra o nome dentro da celula (nao da para remontar sem chute). */
+  nome: string | null;
+  documento: string | null;
+  nascimento: DataCia | null;
+  /** Parentesco como a cia escreve ("PAI", "PAIS", "O cônjuge do proprietário"). */
+  parentesco: string | null;
+  /** Participacao em % (50 = 50%). */
+  percentual: number | null;
 }
 
 export interface VidaExtraida {
   renda: string | null;
   capital_morte: Dinheiro | null;
+  /**
+   * A periodicidade do premio impresso ("MENSAL", "ANUAL"). Em vida,
+   * `premio_liquido`/`premio_total` sao os da periodicidade impressa (a MAPFRE
+   * imprime o premio MENSAL).
+   */
+  periodicidade_premio: string | null;
+  beneficiarios: BeneficiarioExtraido[];
 }
 
 export interface DocumentoExtraido extends Identificacao {
@@ -207,6 +239,22 @@ export const autoVazio = (): AutoExtraido => ({
   condutor: null,
   questionario: questionarioVazio(),
 });
+
+export const residencialVazio = (): ResidencialExtraido => ({
+  imovel: null,
+  tipo_imovel: null,
+  ocupacao: null,
+  condominio_fechado: null,
+  lmi_basica: null,
+  tipo_construcao: null,
+  bem_segurado: null,
+  plano_assistencia: null,
+  lmg: null,
+  valor_de_novo: null,
+  bonus: null,
+  respostas: [],
+});
+export const vidaVazia = (): VidaExtraida => ({ renda: null, capital_morte: null, periodicidade_premio: null, beneficiarios: [] });
 
 export function documentoBase(id: Identificacao): DocumentoExtraido {
   return {

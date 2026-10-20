@@ -41,7 +41,16 @@ proposta), lê o número impresso e devolve tudo num formato só (`DocumentoExtr
   (`respostas`: toda pergunta e resposta como impressas, além dos campos conhecidos);
 - coberturas (descrição, LMI, limite em texto, prêmio, franquia), assistências,
   cláusulas, franquias (casco, vidros, faróis...), prêmio líquido e total, pagamento;
-- residencial (imóvel, tipo, ocupação, LMI básica) e vida (capital de morte, renda).
+- residencial: imóvel, tipo, ocupação, condomínio, construção, bem segurado (prédio e/ou
+  conteúdo), plano de assistência, LMI básica, LMG, valor de novo, bônus e o questionário
+  (`respostas`);
+- vida: capital de morte, renda, periodicidade do prêmio (a MAPFRE imprime o mensal) e
+  beneficiários (nome, CPF, nascimento, parentesco, %; o nome fica nulo quando a seguradora o
+  quebra dentro da célula).
+
+Em residencial e vida, os dados gerais (vigência, proposta, emissão, prêmios, pagamento,
+franquias, contatos do segurado) saem de `src/gerais.ts`, por cima do que o leitor de cada
+seguradora já lê (o do leitor vence campo a campo).
 
 | Seguradora | Auto | Endosso | Proposta | Residencial | Vida |
 |---|---|---|---|---|---|
@@ -102,6 +111,7 @@ npx tsx scripts/respostas.ts hdi "Guarda|Utiliza"   # linhas de pergunta e respo
 npx tsx scripts/cobertura.ts yelum             # quanto o leitor acha, campo a campo
 npx tsx scripts/regressao.ts gravar antes      # roda tudo sobre os PDFs reais e grava (fora do git)
 npx tsx scripts/regressao.ts comparar antes depois   # o que mudou, so o caminho do campo
+npx tsx scripts/medida.ts antes depois         # campos preenchidos por seguradora/ramo (so contagens)
 ```
 
 O levantamento de 2026-10-19 (o que cada seguradora imprime e o que não imprime) está no

@@ -71,6 +71,10 @@ export function enderecoDoLocalSegurado(v: string | null): EnderecoParaRenovar |
 export interface CoberturaResidencialLida {
   descricao: string;
   lmi: Dinheiro | null;
+  /** O "Preço por Cobertura" (segundo valor da linha). */
+  premio: Dinheiro | null;
+  /** A "Participação Obrigatória" como impressa ("10% dos prejuízos com mínimo de R$ 600,00"). */
+  franquia: string | null;
 }
 
 /** A tabela da OFERTA ESCOLHIDA. A descricao que quebra em volta dos valores e juntada. */
@@ -103,7 +107,14 @@ export function coberturasDaOferta(linhas: readonly string[]): { coberturas: Cob
       assistencia = descricao;
       continue;
     }
-    coberturas.push({ descricao, lmi: dinheiroDoTexto(valores[0]?.[0]) });
+    /* Depois do LMI e do preco, a participacao obrigatoria ("10% dos prejuízos com mínimo de R$ 600,00"). */
+    const depois = valores[1] === undefined ? "" : l.slice((valores[1].index ?? 0) + valores[1][0].length).trim();
+    coberturas.push({
+      descricao,
+      lmi: dinheiroDoTexto(valores[0]?.[0]),
+      premio: dinheiroDoTexto(valores[1]?.[0]),
+      franquia: /^\d+\s*%/.test(depois) ? vazio(depois) : null,
+    });
   }
   return { coberturas, assistencia };
 }
