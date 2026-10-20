@@ -105,6 +105,9 @@ describe("residencial Tokio", () => {
     "Apólice nº 12345678 - RESIDENCIAL",
     "Segurado: FULANA DE TAL Nome Social:",
     "CPF : 111.444.777-35",
+    "Endereço: AV DOS COQUEIROS , 450 - CS 2",
+    "Bairro: ITAPUA",
+    "CEP: 41000-000 Cidade: SALVADOR UF: BA",
     "Tipo de Imóvel: Casa em Condomínio",
     "Ocupação: Habitual",
     "Local do Risco: RUA DAS FLORES Número Logradouro: 120",
@@ -121,6 +124,7 @@ describe("residencial Tokio", () => {
     const r = lerResidencialTokio(linhas, "0012345678");
     expect(r?.imovel).toEqual({ cep: "40000000", logradouro: "RUA DAS FLORES", numero: "120", complemento: "CASA 2", bairro: "CENTRO", cidade: "SALVADOR", uf: "BA" });
     expect(r?.condominio_fechado).toBe(true);
+    expect(r?.segurado_endereco).toEqual({ cep: "41000000", logradouro: "AV DOS COQUEIROS", numero: "450", complemento: "CS 2", bairro: "ITAPUA", cidade: "SALVADOR", uf: "BA" });
     expect(r?.lmi_basica?.centavos).toBe(40000000);
     expect(r?.assistencia).toBe("Assistência 24 horas Plano Vip");
   });

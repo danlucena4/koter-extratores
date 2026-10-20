@@ -203,6 +203,20 @@ export function lerResidencialTokio(linhas: readonly string[], numeroApolice: st
     cidade: achar(local, /^Cidade:\s*(.+?)\s+CEP:/i),
     uf: achar(local, /UF:\s*([A-Z]{2})\b/),
   };
+  /* Segurado: "Endereço: RUA X , 99 - COMPL" / "Bairro: X" / "CEP: 00000-000 Cidade: X UF: BA" logo abaixo do CPF. */
+  const iSeg = linhas.findIndex((l) => /^Segurado:/.test(l));
+  const seg = iSeg < 0 ? [] : linhas.slice(iSeg, iSeg + 6);
+  const mRua = /^(.*?)\s*,\s*(\d+\S*)\s*(?:-\s*(.*))?$/.exec(achar(seg, /^Endereço:\s*(.+)$/) ?? "");
+  const mCep = /^CEP:\s*(\d{5}-\d{3})\s+Cidade:\s*(.+?)\s+UF:\s*([A-Z]{2})\b/.exec(seg.find((l) => /^CEP:/.test(l)) ?? "");
+  const segEnd: EnderecoLido = {
+    cep: mCep === null ? null : digitos(mCep[1]),
+    logradouro: vazio(mRua?.[1]),
+    numero: vazio(mRua?.[2]),
+    complemento: vazio(mRua?.[3]),
+    bairro: achar(seg, /^Bairro:\s*(.+)$/),
+    cidade: vazio(mCep?.[2]),
+    uf: mCep?.[3] ?? null,
+  };
   const tipo = achar(linhas, /Tipo de Imóvel:\s*(.+)$/i);
   const itens = tabelaDeCoberturas(linhas, /^Coberturas Contratadas/i, /^Prêmio Líquido Total/i, { minimoDeValores: 2 });
   const assistLinha = achar(linhas, /^(Assistência\s+\d+\s+horas.*?)\s+[\d.]+,\d{2}\s*$/i);
@@ -210,7 +224,7 @@ export function lerResidencialTokio(linhas: readonly string[], numeroApolice: st
     numero: impresso,
     segurado_nome: achar(linhas, /^Segurado:\s*(.+?)(?:\s+Nome Social:.*)?$/),
     segurado_documento: doc(achar(linhas, /^CPF\s*:\s*([\d.\-/]+)/)),
-    segurado_endereco: null,
+    segurado_endereco: Object.values(segEnd).every((v) => v === null) ? null : segEnd,
     imovel: Object.values(imovel).every((v) => v === null) ? null : imovel,
     tipo_imovel: tipo,
     ocupacao: achar(linhas, /^Ocupação:\s*(.+)$/i),
