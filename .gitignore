@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.log
+.env
+.env.*
+# PDFs reais tem dado de cliente: nunca entram no repositorio.
+*.pdf
+.data/
