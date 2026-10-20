@@ -29,9 +29,9 @@ o consumidor.
 | `hdi` | documento de auto (HTML, o mesmo quadro do PDF): segurado, veículo, perfil, guarda do veículo, condutor |
 | `bradesco` | apólice de auto (seções numa linha só): segurado, condutor, veículo, isenção, Questionário de Risco |
 | `zurich` | apólice de auto pelo Questionário Perfil (residência, garagens com portão, trabalho, escola) |
+| `tokio` | apólice de auto (segurado, condutor determinado, residentes 18 a 25, garagem, uso, placa, chassi, bônus, CI) |
 
-Tokio Marine ainda não tem leitor: nenhum PDF foi baixado (o login da credencial cadastrada foi
-recusado). Pier, Youse e Justos não têm renovação própria.
+Pier, Youse e Justos não têm renovação própria.
 
 ## Uso
 

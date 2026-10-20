@@ -17,3 +17,4 @@ export * from "./porto.js";
 export * from "./hdi.js";
 export * from "./bradesco.js";
 export * from "./zurich.js";
+export * from "./tokio.js";
