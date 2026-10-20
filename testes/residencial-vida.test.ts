@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { dinheiroPtBr, tabelaDeCoberturas } from "../src/tabela.js";
-import { lerResidencialHdi, lerResidencialMapfre, lerResidencialTokio } from "../src/residencial.js";
+import { lerResidencialHdi, lerResidencialMapfre, lerResidencialPorto, lerResidencialTokio } from "../src/residencial.js";
 import { lerVidaAllianz, lerVidaMapfre, lerVidaYelum } from "../src/vida.js";
 
 describe("tabela de coberturas", () => {
@@ -228,5 +228,53 @@ describe("vida", () => {
     expect([r?.segurado_nome, r?.segurado_documento, r?.vigencia_fim?.iso]).toEqual(["FULANA DE TAL", "11144477735", "2027-01-10"]);
     /* Bairro e cidade colados: so o CEP e a rua com numero. */
     expect(r?.segurado_endereco).toEqual({ cep: "40000000", logradouro: "RUA DAS FLORES", numero: "120", complemento: null, bairro: null, cidade: null, uf: null });
+  });
+});
+
+describe("residencial Porto", () => {
+  const linhas = [
+    "Seguro Residencial Habitual",
+    "DADOS DA APÓLICE",
+    "Número da apólice: 001 14 1234567 Ramo: 114",
+    "DADOS DO SEGURADO",
+    "Nome: FULANA DE TAL",
+    "CPF: 111.444.777-35",
+    "Endereço: Rua das Flores, 120 - Apto 3",
+    "Bairro: Centro",
+    "Cidade: Salvador Estado: BA CEP: 40000-000",
+    "LOCAL SEGURADO",
+    "Endereço: RUA DAS FLORES 120 APTO 3",
+    "Bairro: CENTRO",
+    "Cidade: SALVADOR",
+    "Estado: BA CEP: 40000-000",
+    "Tipo de residência: APARTAMENTO",
+    "COBERTURAS CONTRATADAS",
+    "PREÇO (R$)",
+    "NOME DA COBERTURA L.M.I (R$)",
+    "INCÊNDIO, EXPLOSÃO, IMPLOSÃO, FUMAÇA E",
+    "R$ 300.000,00 R$ 90,00",
+    "QUEDA DE AERONAVE",
+    "RC FAMILIAR R$ 20.000,00 R$ 10,00",
+    "PREÇO LÍQUIDO DAS COBERTURAS R$ 100,00",
+    "SERVIÇOS CONTRATADOS",
+    "PLANO ESSENCIAL - GRATUITO APARTAMENTO",
+  ];
+
+  it("le a descricao quebrada em volta dos valores e divide o local pelo endereco do segurado", () => {
+    const r = lerResidencialPorto(linhas, "001234567");
+    expect(r?.coberturas.map((c) => c.descricao)).toEqual(["INCÊNDIO, EXPLOSÃO, IMPLOSÃO, FUMAÇA E QUEDA DE AERONAVE", "RC FAMILIAR"]);
+    expect(r?.lmi_basica?.centavos).toBe(30000000);
+    expect(r?.imovel).toEqual({ cep: "40000000", logradouro: "RUA DAS FLORES", numero: "120", complemento: "APTO 3", bairro: "CENTRO", cidade: "SALVADOR", uf: "BA" });
+    expect(r?.segurado_endereco?.logradouro).toBe("Rua das Flores");
+    expect([r?.tipo_imovel, r?.ocupacao, r?.assistencia]).toEqual(["APARTAMENTO", "Habitual", "PLANO ESSENCIAL - GRATUITO APARTAMENTO"]);
+  });
+
+  it("local que nao comeca pela rua do segurado: rua e numero ficam nulos", () => {
+    const r = lerResidencialPorto(linhas.map((l) => (l === "Endereço: RUA DAS FLORES 120 APTO 3" ? "Endereço: AV OUTRA 55" : l)), "1234567");
+    expect(r?.imovel).toMatchObject({ logradouro: null, numero: null, cep: "40000000", uf: "BA" });
+  });
+
+  it("trava: outra apolice e recusada", () => {
+    expect(lerResidencialPorto(linhas, "7654321")).toBeNull();
   });
 });

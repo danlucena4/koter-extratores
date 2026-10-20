@@ -30,7 +30,7 @@ o consumidor.
 | `bradesco` | apólice de auto (seções numa linha só): segurado, condutor, veículo, isenção, Questionário de Risco |
 | `zurich` | apólice de auto pelo Questionário Perfil (residência, garagens com portão, trabalho, escola) |
 | `tokio` | apólice de auto (segurado, condutor determinado, residentes 18 a 25, garagem, uso, placa, chassi, bônus, CI) |
-| `residencial` | apólice residencial MAPFRE, HDI e Tokio (endereço do risco, tipo, ocupação, coberturas + LMI, assistência) |
+| `residencial` | apólice residencial MAPFRE, HDI, Tokio e Porto (endereço do risco, tipo, ocupação, coberturas + LMI, assistência) |
 | `vida` | apólice de vida MAPFRE, Allianz e Yelum (nascimento, sexo, profissão, renda, coberturas + capital) |
 | `tabela` | dinheiro pt-BR e a tabela de coberturas (descrição que quebra linha + valores) comum aos leitores |
 
