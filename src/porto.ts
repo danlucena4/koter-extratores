@@ -49,9 +49,10 @@ export interface ApolicePortoLida {
  *   Cidade: SALVADOR CEP:
  */
 export function enderecoDaApolicePorto(linhas: readonly string[]): EnderecoParaRenovar | null {
-  const ini = linhas.findIndex((l) => /^Segurado\(a\):/i.test(l));
+  /* Porto: "Segurado(a):"; Itau: "Nome do segurado(a):", e o bloco acaba nos dados do veiculo. */
+  const ini = linhas.findIndex((l) => /^(?:Nome do )?Segurado\(a\):/i.test(l));
   if (ini < 0) return null;
-  const fimRel = linhas.slice(ini).findIndex((l) => /^Tel\. residencial:/i.test(l));
+  const fimRel = linhas.slice(ini).findIndex((l) => /^(?:Tel\. residencial:|Dados do ve)/i.test(l));
   const bloco = linhas.slice(ini, fimRel < 0 ? ini + 12 : ini + fimRel);
   const achar = (re: RegExp) => bloco.map((l) => re.exec(l)?.[1]?.trim()).find((x) => x !== undefined && x.length > 0) ?? null;
 
@@ -105,12 +106,18 @@ export function lerApolicePorto(linhasCruas: readonly string[], apolice: string)
   const bonus = linhas.map((l) => /Classe de b[ôo]nus:\s*(\d{1,2})\s*$/i.exec(l)?.[1]).find((x) => x !== undefined);
 
   /* Segurado: "Data de nascimento: ... Sexo: ..." (nesta ordem), antes do motorista principal. */
-  const iMotorista = linhas.findIndex((l) => /^Nome do motorista principal:/i.test(l));
+  /* Porto: "Nome do motorista principal:"; Itau: "Nome do condutor(a):". */
+  const iMotorista = linhas.findIndex((l) => /^Nome do (?:motorista principal|condutor\(a\)):/i.test(l));
   const fimSegurado = iMotorista < 0 ? linhas.length : iMotorista;
   const doSegurado = linhas
     .slice(0, fimSegurado)
     .map((l) => /^Data de nascimento:\s*(\d{2}\/\d{2}\/\d{4})\s+Sexo:\s*(Masculino|Feminino)\s*$/i.exec(l))
     .find((m) => m !== null);
+  /* Itau: "CPF: 00000000000 Data de nasc.: dd/mm/aaaa", sem o sexo. */
+  const nascSeguradoItau = linhas
+    .slice(0, fimSegurado)
+    .map((l) => /^CPF:\s*[\d.\-]+\s+Data de nasc\.?:\s*(\d{2}\/\d{2}\/\d{4})/i.exec(l)?.[1])
+    .find((x) => x !== undefined);
 
   /* Motorista principal: "Sexo: ... Data de nascimento: ... CPF: ..." (outra ordem), depois do nome. */
   const doCondutor =
@@ -120,7 +127,15 @@ export function lerApolicePorto(linhasCruas: readonly string[], apolice: string)
           .slice(iMotorista, iMotorista + 4)
           .map((l) => /^Sexo:\s*(Masculino|Feminino)\s+Data de nascimento:\s*(\d{2}\/\d{2}\/\d{4})\s+CPF:\s*([\d.\-]+)/i.exec(l))
           .find((m) => m !== null);
-  const cpf = (doCondutor?.[3] ?? "").replace(/\D/g, "");
+  /* Itau: "CPF: 00000000000 Data de nasc: dd/mm/aaaa", sem o sexo. */
+  const condutorItau =
+    iMotorista < 0 || doCondutor !== undefined
+      ? undefined
+      : linhas
+          .slice(iMotorista, iMotorista + 4)
+          .map((l) => /^CPF:\s*([\d.\-]+)\s+Data de nasc\.?:\s*(\d{2}\/\d{2}\/\d{4})/i.exec(l))
+          .find((m) => m !== null);
+  const cpf = (doCondutor?.[3] ?? condutorItau?.[1] ?? "").replace(/\D/g, "");
 
   const pernoite = linhas
     .map((l) => /Cep do local onde o ve[íi]culo pernoita\?\s*(\d{5}-?\d{3})\b/i.exec(l)?.[1]?.replace(/\D/g, ""))
@@ -140,12 +155,12 @@ export function lerApolicePorto(linhasCruas: readonly string[], apolice: string)
   return {
     numero: impresso !== undefined ? impresso.replace(/\D/g, "") : pedido,
     classe_bonus: bonus === undefined ? null : Number(bonus),
-    segurado_nascimento: data(doSegurado?.[1]),
+    segurado_nascimento: data(doSegurado?.[1] ?? nascSeguradoItau),
     segurado_sexo: doSegurado?.[2] ?? null,
     combustivel,
     uso,
     condutor_sexo: doCondutor?.[1] ?? null,
-    condutor_nascimento: data(doCondutor?.[2]),
+    condutor_nascimento: data(doCondutor?.[2] ?? condutorItau?.[2]),
     condutor_cpf: cpf.length === 11 ? cpf : null,
     cep_pernoite: pernoite !== undefined && pernoite.length === 8 ? pernoite : null,
     endereco: enderecoDaApolicePorto(linhas),

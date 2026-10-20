@@ -173,12 +173,41 @@ export function juntarPedacos(pedacos: ReadonlyArray<readonly [number, string]>)
   return s;
 }
 
+/** Um pedaco de texto com a POSICAO (x, y) em que o PDF o desenha. */
+export interface PedacoDeTexto {
+  x: number;
+  y: number;
+  texto: string;
+}
+
 /** As linhas de texto de um stream de conteudo ja descomprimido. */
 export function linhasDoConteudo(conteudo: string, fontes?: ReadonlyMap<string, TabelaUnicode>): string[] {
+  const porY = new Map<number, Array<[number, string]>>();
+  for (const p of pedacosDoConteudo(conteudo, fontes)) {
+    const chave = Math.round(p.y);
+    const linha = porY.get(chave) ?? [];
+    linha.push([p.x, p.texto]);
+    porY.set(chave, linha);
+  }
+  return [...porY.entries()]
+    .sort((a, b) => b[0] - a[0])
+    .map(([, pedacos]) =>
+      juntarPedacos(pedacos.sort((a, b) => a[0] - b[0]))
+        .replace(/\s+/g, " ")
+        .trim(),
+    )
+    .filter((l) => l.length > 0);
+}
+
+/**
+ * Os pedacos de texto de um stream, com a posicao. Para layout em COLUNAS (a
+ * Zurich desenha varias colunas na mesma altura): quem le separa por x.
+ */
+export function pedacosDoConteudo(conteudo: string, fontes?: ReadonlyMap<string, TabelaUnicode>): PedacoDeTexto[] {
   let x = 0;
   let y = 0;
   let fonte: TabelaUnicode | undefined;
-  const porY = new Map<number, Array<[number, string]>>();
+  const out: PedacoDeTexto[] = [];
   TOKEN.lastIndex = 0;
   let t: RegExpExecArray | null;
   while ((t = TOKEN.exec(conteudo)) !== null) {
@@ -210,19 +239,9 @@ export function linhasDoConteudo(conteudo: string, fontes?: ReadonlyMap<string, 
         .map((p) => (p.startsWith("<") ? deHex(p.slice(1, -1), fonte) : deLiteral(p.slice(1, -1), fonte)))
         .join("");
     }
-    const chave = Math.round(y);
-    const linha = porY.get(chave) ?? [];
-    linha.push([x, texto]);
-    porY.set(chave, linha);
+    out.push({ x, y, texto });
   }
-  return [...porY.entries()]
-    .sort((a, b) => b[0] - a[0])
-    .map(([, pedacos]) =>
-      juntarPedacos(pedacos.sort((a, b) => a[0] - b[0]))
-        .replace(/\s+/g, " ")
-        .trim(),
-    )
-    .filter((l) => l.length > 0);
+  return out;
 }
 
 interface Objeto {
@@ -338,6 +357,19 @@ function pareceBinario(conteudo: string): boolean {
 
 /** Todas as linhas de texto do PDF, stream por stream. `[]` quando nao ha texto. */
 export function linhasDoPdf(bytes: Uint8Array): string[] {
+  return streamsDeTexto(bytes).flatMap(({ conteudo, fontes }) => linhasDoConteudo(conteudo, fontes));
+}
+
+/**
+ * Os pedacos com posicao, um grupo por stream de conteudo (em geral uma
+ * pagina). Para leitor de layout em colunas.
+ */
+export function pedacosDoPdf(bytes: Uint8Array): PedacoDeTexto[][] {
+  return streamsDeTexto(bytes).map(({ conteudo, fontes }) => pedacosDoConteudo(conteudo, fontes));
+}
+
+/** Cada stream de conteudo com texto, ja descomprimido, com as fontes da pagina dele. */
+function streamsDeTexto(bytes: Uint8Array): Array<{ conteudo: string; fontes: ReadonlyMap<string, TabelaUnicode> | undefined }> {
   const buf = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const s = buf.toString("latin1");
   const fontes = fontesPorConteudo(buf, s);
@@ -347,7 +379,7 @@ export function linhasDoPdf(bytes: Uint8Array): string[] {
     const m = antes < 0 ? null : /(\d+)\s+0$/.exec(s.slice(Math.max(0, antes - 24), antes));
     return m === null ? null : Number(m[1]);
   };
-  const linhas: string[] = [];
+  const saida: Array<{ conteudo: string; fontes: ReadonlyMap<string, TabelaUnicode> | undefined }> = [];
   const inicio = /stream\r?\n/g;
   let m: RegExpExecArray | null;
   while ((m = inicio.exec(s)) !== null) {
@@ -362,9 +394,9 @@ export function linhasDoPdf(bytes: Uint8Array): string[] {
     }
     if (!/\bT[jJ]\b/.test(conteudo) || pareceBinario(conteudo)) continue;
     const dono = fontes.size > 0 ? donoDe(m.index) : null;
-    linhas.push(...linhasDoConteudo(conteudo, dono === null ? undefined : fontes.get(dono)));
+    saida.push({ conteudo, fontes: dono === null ? undefined : fontes.get(dono) });
   }
-  return linhas;
+  return saida;
 }
 
 /** `%PDF-` nos primeiros bytes. */

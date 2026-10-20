@@ -14,3 +14,6 @@ export * from "./yelum.js";
 export * from "./allianz.js";
 export * from "./allianz-residencial.js";
 export * from "./porto.js";
+export * from "./hdi.js";
+export * from "./bradesco.js";
+export * from "./zurich.js";

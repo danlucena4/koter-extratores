@@ -155,6 +155,28 @@ describe("Porto: o PDF completa o Renovar", () => {
     });
   });
 
+  it("Itau: 'Nome do segurado(a)' e 'Nome do condutor(a)', com nascimento e sem sexo", () => {
+    const itau = [
+      "Ap ó lice: 0001 31 12345678 Item: 01",
+      "Nome do segurado(a): FULANA",
+      "CPF: 11144477735 Data de nasc.: 10/03/1985",
+      "Endere ç o: R Um, 5 Apt 2",
+      "Bairro: Centro Estado: BA",
+      "Cidade: Salvador CEP: 40000-000",
+      "Dados do ve í culo segurado",
+      "Nome do condutor(a): FULANA",
+      "CPF: 11144477735 Data de nasc: 10/03/1985",
+    ];
+    expect(lerApolicePorto(itau, "12345678")).toMatchObject({
+      segurado_nascimento: { iso: "1985-03-10" },
+      segurado_sexo: null,
+      condutor_cpf: "11144477735",
+      condutor_nascimento: { iso: "1985-03-10" },
+      condutor_sexo: null,
+      endereco: { cep: "40000000", logradouro: "R Um", numero: "5", complemento: "Apt 2", bairro: "Centro", cidade: "Salvador", uf: "BA" },
+    });
+  });
+
   it("rotulo 'Apólice:' noutra linha: o numero antes de 'Item:' ainda trava", () => {
     const l = ["Apólice:", "01 31 0001 12345678 Item: 01", "Uso: Particular Câmbio automático: Não"];
     expect(lerApolicePorto(l, "12345678")?.uso).toBe("Particular");
