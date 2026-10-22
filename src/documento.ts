@@ -25,6 +25,7 @@ import { documentoResidencialTokio } from "./tokio-residencial.js";
 import { documentoVidaAllianz } from "./allianz-vida.js";
 import { documentoVidaMapfre } from "./mapfre-vida.js";
 import { documentoVidaYelum } from "./yelum-vida.js";
+import { documentoVidaTokio, ehApoliceVidaTokio } from "./tokio-vida.js";
 
 export * from "./modelo.js";
 import { achar, digitos, posicionarTexto } from "./leitura.js";
@@ -160,6 +161,7 @@ function ramoETipo(s: Seguradora, linhas: readonly string[]): { ramo: RamoDoDocu
       return auto("apolice HDI (auto)");
     case "tokio":
       if (tem(/Tokio Marine Residencial/i)) return res("Tokio Marine Residencial");
+      if (ehApoliceVidaTokio(linhas)) return vida("Tokio Marine Vida");
       return auto("Tokio Marine Auto");
     case "yelum":
     case "aliro":
@@ -276,6 +278,8 @@ function lerPelaCia(doc: DocumentoExtraido, pos: readonly LinhaPosicionada[], nu
         return documentoVidaMapfre(doc, pos, numero);
       case "allianz":
         return documentoVidaAllianz(doc, pos, numero);
+      case "tokio":
+        return documentoVidaTokio(doc, pos, numero);
       case "yelum":
       case "aliro":
         return documentoVidaYelum(doc, pos, numero);

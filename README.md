@@ -57,7 +57,7 @@ Em vida, `premio_liquido` e `premio_total` são os da periodicidade impressa
 | Porto / Itaú / Azul | ✔ (inclui Proteção Combinada Itaú) | ✔ (residencial) | | ✔ (Porto) | |
 | Allianz | ✔ | ✔ (auto, residencial, vida) | ✔ | ✔ | ✔ |
 | Yelum / Aliro | ✔ | | | | ✔ (Yelum) |
-| Tokio Marine | ✔ | | | ✔ | |
+| Tokio Marine | ✔ | | | ✔ | ✔ (Vida Individual, Homem, Mulher) |
 | Zurich | ✔ | | | | |
 | Bradesco | ✔ (dois layouts) | | | | |
 | HDI | ✔ (PDF e documento HTML) | ✔ | | ✔ | |
