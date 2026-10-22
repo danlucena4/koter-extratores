@@ -109,27 +109,42 @@ export function geraisVidaYelum(pos: readonly LinhaPosicionada[]): DadosGerais {
   const datasAp = q(["Vigência do Seguro", "Data de Emissão", "Data da 1ª Contratação do Seguro"]);
   const premio = q(["Prêmio Líquido (R$)", "Adic. Frac. (R$)", "Custo Apólice (R$)", "IOF (R$)", "Prêmio Total (R$)"]);
   const ren = q(["Data de Nascimento", "Renova Apólice Nº", "Seguradora"]);
-  const contato = q(["Telefone 1", "Telefone 2", "E-mail"]);
-  const iCob = linhas.findIndex((l) => /^Tipo de Cobrança\b/i.test(l));
-  const forma = iCob < 0 ? null : vazio((linhas[iCob + 1] ?? "").replace(/\s+\d{4}\s+\d{2}\/\d{2}\/\d{4}.*$/, ""));
+  /* Um telefone ("Telefone | E-mail") ou dois ("Telefone 1 | Telefone 2 | E-mail"). */
+  const contato = quadroPorColuna(pos, ["Telefone 1", "Telefone 2", "E-mail"]) ?? q(["Telefone", "E-mail"]);
+  /*
+   * FORMA DE PAGAMENTO: a grade de parcelas ("0001 26/09/2026 13,96", no debito
+   * com banco/agencia/conta no meio) corre ao lado dos rotulos; a forma e o
+   * texto antes da parcela numa das linhas ("CARTÃO DE CRÉDITO 0001 ...",
+   * "DEBITO EM C/C 0002 ..."), as parcelas pela grade (todas de 1 ate a maior).
+   */
+  const grade = secao(linhas, /^Tipo de Cobrança\b/i, /^(ATENÇÃO|DADOS DO SEGURO)/i, 30).slice(1);
+  const PARCELA = /(?:^|\s)(\d{4})\s+(?:\d+\s+\d+\s+[\d-]+\s+-\s+\d\s+)?\d{2}\/\d{2}\/\d{4}\s+[\d.]+,\d{2}\s*$/;
+  const forma =
+    grade.map((l) => /^([A-ZÀ-Ú][A-ZÀ-Ú/ ]*[A-ZÀ-Ú/])\s+\d{4}\s/.exec(l.trim())?.[1]).find((x) => x !== undefined && !/^N[ºo°] PARCELAS$/i.test(x)) ?? null;
+  const numeros = new Set(grade.map((l) => Number(PARCELA.exec(l)?.[1] ?? 0)).filter((x) => x > 0));
+  const maior = Math.max(0, ...numeros);
+  const completa = maior > 0 && [...Array(maior).keys()].every((k) => numeros.has(k + 1));
   const iParc = linhas.findIndex((l) => /^N[ºo°] Parcelas\b/i.test(l));
-  const parcelas = iParc < 0 ? null : Number(/^(\d{1,2})\b/.exec(linhas[iParc + 1] ?? "")?.[1] ?? Number.NaN);
+  const impresso = iParc < 0 ? Number.NaN : Number(/^(\d{1,2})\b/.exec(linhas[iParc + 1] ?? "")?.[1] ?? Number.NaN);
+  /* O "Nº Parcelas" impresso logo abaixo do rotulo vence; quando a grade o empurra para baixo, a grade conta. */
+  const parcelas = Number.isFinite(impresso) ? impresso : completa ? maior : null;
   const iBairro = linhas.findIndex((l) => /^Bairro Cidade UF CEP$/i.test(l.trim()));
   const uf = iBairro < 0 ? null : ufDe(/\s([A-Z]{2})\s+\d{5}-\d{3}\s*$/.exec(linhas[iBairro + 1] ?? "")?.[1]);
   const vig = datas(datasAp.get("Vigência do Seguro"));
   const renova = digitos(ren.get("Renova Apólice Nº"));
-  g.produto = achar(linhas.slice(0, 2), /^(Yelum Vida .+)$/i);
+  /* "Liberty Vida ..." e a marca antiga da Yelum (mesma cia, mesmo layout). */
+  g.produto = achar(linhas.slice(0, 2), /^((?:Yelum|Liberty) Vida .+)$/i);
   g.proposta = digitos(ap.get("Proposta")) || null;
   g.vigencia_inicio = vig[0] ?? null;
   g.vigencia_fim = vig[1] ?? null;
   g.emissao = data(datasAp.get("Data de Emissão"));
   g.premio_liquido = dinheiro(premio.get("Prêmio Líquido (R$)"));
   g.premio_total = dinheiro(premio.get("Prêmio Total (R$)"));
-  g.pagamento = pagamento(forma, parcelas !== null && Number.isFinite(parcelas) ? parcelas : null);
+  g.pagamento = pagamento(forma, parcelas);
   g.renovacao_de = renova.length >= 8 ? { numero: renova, seguradora: vazio(ren.get("Seguradora")) } : null;
   g.segurado = {
     email: email(contato.get("E-mail")),
-    telefones: fones(contato.get("Telefone 1"), contato.get("Telefone 2")),
+    telefones: fones(contato.get("Telefone 1"), contato.get("Telefone 2"), contato.get("Telefone")),
     ...(uf !== null ? { endereco: { cep: null, logradouro: null, numero: null, complemento: null, bairro: null, cidade: null, uf } } : {}),
   };
   g.vida = {

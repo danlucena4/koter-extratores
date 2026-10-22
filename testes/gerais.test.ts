@@ -423,4 +423,23 @@ describe("vida", () => {
     expect(g.segurado).toMatchObject({ email: "fulano@exemplo.com", telefones: ["84988881234", "8433331234"], endereco: { uf: "PB" } });
     expect(g.vida.beneficiarios).toEqual([{ nome: "FULANA DE TAL", documento: null, nascimento: null, parentesco: "PAIS", percentual: 100 }]);
   });
+
+  it("Yelum (marca antiga Liberty): debito em conta, um telefone so e o numero de parcelas empurrado pela grade", () => {
+    const pos = posicionarTexto([
+      "Liberty Vida Mais Tranquila",
+      "Apólice - Ramo 91 Vida",
+      "Telefone              E-mail",
+      "(11) 3333-1234        FULANO@EXEMPLO.COM",
+      "Tipo de Cobrança Parcelas Banco Ag. CC Vencimento Valor (R$)",
+      "0001 33 100 1234567 - 4 24/10/2025 248,25",
+      "DEBITO EM C/C 0002 33 100 1234567 - 4 24/11/2025 248,26",
+      "Nº Parcelas 0003 33 100 1234567 - 4 24/12/2025 248,26",
+      "3",
+      "ATENÇÃO:",
+    ]);
+    const g = geraisVidaYelum(pos);
+    expect(g.produto).toBe("Liberty Vida Mais Tranquila");
+    expect(g.pagamento).toEqual({ forma: "DEBITO EM C/C", parcelas: 3 });
+    expect(g.segurado).toMatchObject({ email: "fulano@exemplo.com", telefones: ["1133331234"] });
+  });
 });

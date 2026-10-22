@@ -128,7 +128,9 @@ function ramoETipo(s: Seguradora, linhas: readonly string[]): { ramo: RamoDoDocu
   /* Residencial e vida: endosso quando o documento imprime o numero do endosso maior que zero. */
   const endosso = numeroDoEndosso(linhas);
   const tipoRv = endosso !== null && endosso > 0 ? ("endosso" as const) : ("apolice" as const);
-  const comEndosso = (sinal: string) => (tipoRv === "endosso" ? `${sinal}; endosso ${endosso}` : sinal);
+  /* O titulo do endosso, quando impresso no cabecalho ("ENDOSSO DE CANCELAMENTO CANC.APO.FALTA DE PAGAMENTO"). */
+  const titulo = linhas.slice(0, 5).map((l) => /^(ENDOSSO DE\s+.+)$/i.exec(l.trim())?.[1]).find((x) => x !== undefined);
+  const comEndosso = (sinal: string) => (tipoRv === "endosso" ? `${sinal}; endosso ${endosso}${titulo === undefined ? "" : ` (${titulo})`}` : sinal);
   const res = (sinal: string) => ({ ramo: "residencial" as const, tipo: tipoRv, sinal: comEndosso(sinal) });
   const vida = (sinal: string) => ({ ramo: "vida" as const, tipo: tipoRv, sinal: comEndosso(sinal) });
   const auto = (sinal: string) => ({ ramo: "auto" as const, tipo: "apolice" as const, sinal });
