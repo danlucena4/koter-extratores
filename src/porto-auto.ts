@@ -96,7 +96,7 @@ export function lerAutoPorto(doc: DocumentoExtraido, linhas: readonly string[], 
   const linhasCob = tabelaPorValores(blocoCob, { ignorar: NAO_E_COBERTURA });
   const coberturas: CoberturaExtraida[] = linhasCob.map((c) => {
     const din = c.valores.map((v) => dinheiro(v));
-    const texto = c.valores.filter((v, i) => din[i] === null);
+    const texto = c.valores.filter((_v, i) => din[i] === null);
     const casco = /Colis[ãa]o\/Inc[êe]ndio\/Roubo\/Furto/i.test(c.descricao);
     /* Dois valores: LMI | Prêmio. Um so: e o prêmio (casco, adicionais), salvo "Contratado"/"Não contratado". */
     const [lmi, premio] = c.valores.length >= 2 ? [c.valores[0], c.valores[c.valores.length - 1]] : [null, c.valores[0]];

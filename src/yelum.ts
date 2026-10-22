@@ -23,6 +23,7 @@
  */
 
 import type { DataCia } from "./tipos.js";
+import { data, vazio } from "./leitura.js";
 
 export interface ApoliceYelumLida {
   numero: string;
@@ -56,15 +57,6 @@ export interface ApoliceYelumLida {
   proprietario_sexo: string | null;
   proprietario_e_o_segurado: boolean;
 }
-
-const vazio = (v: string | null | undefined): string | null => {
-  const s = (v ?? "").replace(/\s+/g, " ").trim();
-  return s.length > 0 ? s : null;
-};
-const data = (v: string | null | undefined): DataCia | null => {
-  const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(v ?? "");
-  return m === null ? null : { iso: `${m[3]}-${m[2]}-${m[1]}`, original: m[0] };
-};
 
 /** A linha logo abaixo do primeiro cabecalho que casa. */
 function abaixo(linhas: readonly string[], cabecalho: RegExp, desde = 0): { valor: string | null; indice: number } {

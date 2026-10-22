@@ -28,6 +28,7 @@
 
 import type { DataCia } from "./tipos.js";
 import type { EnderecoLido as EnderecoParaRenovar } from "./tipos.js";
+import { digitos, escapar } from "./leitura.js";
 
 /** Os rotulos do quadro, o mais longo primeiro (para "CPF/CNPJ" ganhar de "CPF"). */
 export const ROTULOS_DA_APOLICE = [
@@ -70,10 +71,6 @@ export const ROTULOS_DA_APOLICE = [
 ] as const;
 export type RotuloDaApolice = (typeof ROTULOS_DA_APOLICE)[number];
 
-function escapar(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
-}
-
 const PADRAO_ROTULO = new RegExp(`(?:^|\\s)(${ROTULOS_DA_APOLICE.map(escapar).join("|")})\\s*:`, "g");
 
 /**
@@ -104,7 +101,6 @@ export function camposDoQuadro(linhas: readonly string[]): Map<RotuloDaApolice, 
 }
 
 const primeiro = (c: Map<RotuloDaApolice, string[]>, r: RotuloDaApolice): string | null => c.get(r)?.[0] ?? null;
-const digitos = (v: string | null): string => (v ?? "").replace(/\D/g, "");
 
 /** `dd/MM/yyyy` dentro de um texto, na ordem. */
 export function datasDoTexto(v: string | null): DataCia[] {

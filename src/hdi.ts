@@ -16,6 +16,7 @@
  * documento (empresa + sucursal + carteira + seq), nao por busca.
  */
 import type { DataCia, EnderecoLido } from "./tipos.js";
+import { digitos } from "./leitura.js";
 
 /* ------------------------------------------------------------- HTML minimo */
 
@@ -109,8 +110,6 @@ function ateOBlocoDoCorretor(html: string): string {
   const i = html.search(/<td[^>]*>\s*Corretor\s*<\/td>/i);
   return i > 0 ? html.slice(0, i) : html;
 }
-
-const digitos = (v: string | null): string => (v ?? "").replace(/\D/g, "");
 
 /* ------------------------------------------------------------- leitores */
 

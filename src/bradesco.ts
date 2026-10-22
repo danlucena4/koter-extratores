@@ -24,6 +24,7 @@
  * TRAVA: o ultimo bloco do "Número da apólice" tem que ser a apolice pedida.
  */
 import type { DataCia, EnderecoLido } from "./tipos.js";
+import { data, digitos, escapar } from "./leitura.js";
 
 const SECOES = [
   "Dados da sua apólice",
@@ -43,8 +44,6 @@ const SECOES = [
   "Observações",
 ] as const;
 type Secao = (typeof SECOES)[number];
-
-const escapar = (s: string) => s.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
 
 /** O texto de cada secao (a primeira ocorrencia), sem os sublinhados de titulo. */
 export function secoesDoPdfBradesco(linhas: readonly string[]): Map<Secao, string> {
@@ -72,12 +71,6 @@ function valor(secao: string | undefined, rotulo: string, rotulos: readonly stri
   const v = resto.slice(0, corte).trim();
   return v.length > 0 ? v : null;
 }
-
-const data = (v: string | null): DataCia | null => {
-  const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(v ?? "");
-  return m === null ? null : { iso: `${m[3]}-${m[2]}-${m[1]}`, original: m[0] };
-};
-const digitos = (v: string | null) => (v ?? "").replace(/\D/g, "");
 
 const ROTULOS_APOLICE = ["Número da apólice", "Item", "Proposta", "Data da Emissão", "Renovação da apólice", "Cod.", "Bônus", "CI", "Cobertura", "Vigência", "Ramo", "Cosseguro"];
 const ROTULOS_SEGURADO = ["Nome", "Data de Nascimento", "Sexo", "CPF/CNPJ", "Tipo de Pessoa", "Endereço de Pernoite", "Complemento", "Bairro", "CEP", "Municipio", "UF", "Telefone Residencial", "Telefone Celular", "Telefone Comercial", "E-mail"];

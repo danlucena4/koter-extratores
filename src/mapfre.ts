@@ -28,6 +28,7 @@
 
 import type { DataCia } from "./tipos.js";
 import type { EnderecoLido as EnderecoDoPdf } from "./tipos.js";
+import { data, digitos, escapar, vazio } from "./leitura.js";
 
 export const ROTULOS_DA_APOLICE_MAPFRE = [
   "Nome do Principal Condutor",
@@ -66,7 +67,6 @@ export const ROTULOS_DA_APOLICE_MAPFRE = [
 ] as const;
 export type RotuloDaApoliceMapfre = (typeof ROTULOS_DA_APOLICE_MAPFRE)[number];
 
-const escapar = (s: string): string => s.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
 const PADRAO_ROTULO = new RegExp(`(?:^|\\s|-\\s)(${ROTULOS_DA_APOLICE_MAPFRE.map(escapar).join("|")})\\s*:`, "g");
 
 /** Uma linha partida nos rotulos que ela tem, na ordem. */
@@ -81,17 +81,6 @@ export function camposDaLinha(linha: string): Array<{ rotulo: RotuloDaApoliceMap
     rotulo: a.rotulo,
     valor: linha.slice(a.fim, achados[k + 1]?.ini).trim(),
   }));
-}
-
-const vazio = (v: string | undefined | null): string | null => {
-  const s = (v ?? "").replace(/\s+/g, " ").trim();
-  return s.length > 0 ? s : null;
-};
-const digitos = (v: string | null): string => (v ?? "").replace(/\D/g, "");
-
-function data(v: string | null): DataCia | null {
-  const m = v === null ? null : /(\d{2})\/(\d{2})\/(\d{4})/.exec(v);
-  return m === null ? null : { iso: `${m[3]}-${m[2]}-${m[1]}`, original: m[0] };
 }
 
 /** `"2 - FEMININO"` / `"S - SOLTEIRO"` -> o texto, sem o codigo. */

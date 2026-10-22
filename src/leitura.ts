@@ -13,6 +13,8 @@ export const vazio = (v: string | null | undefined): string | null => {
 };
 export const digitos = (v: string | null | undefined): string => (v ?? "").replace(/\D/g, "");
 export const semAcento = (v: string): string => v.normalize("NFD").replace(/[̀-ͯ]/g, "");
+/** Chave para comparar textos: sem acento, maiusculas, so letras e digitos separados por um espaco. */
+export const chaveDeTexto = (v: string): string => semAcento(v).toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim();
 
 /** "dd/mm/aaaa" (tambem "dd/mm/aa" com seculo 19/20 pelo valor) -> DataCia. */
 export function data(v: string | null | undefined): DataCia | null {
@@ -46,6 +48,22 @@ export function cpfOuCnpj(v: string | null | undefined): string | null {
 export function cep(v: string | null | undefined): string | null {
   const m = /\b(\d{5})-?(\d{3})\b/.exec(v ?? "");
   return m === null ? null : `${m[1]}${m[2]}`;
+}
+
+const UF_POR_ESTADO: Readonly<Record<string, string>> = {
+  ACRE: "AC", ALAGOAS: "AL", AMAPA: "AP", AMAZONAS: "AM", BAHIA: "BA", CEARA: "CE", "DISTRITO FEDERAL": "DF",
+  "ESPIRITO SANTO": "ES", GOIAS: "GO", MARANHAO: "MA", "MATO GROSSO": "MT", "MATO GROSSO DO SUL": "MS",
+  "MINAS GERAIS": "MG", PARA: "PA", PARAIBA: "PB", PARANA: "PR", PERNAMBUCO: "PE", PIAUI: "PI",
+  "RIO DE JANEIRO": "RJ", "RIO GRANDE DO NORTE": "RN", "RIO GRANDE DO SUL": "RS", RONDONIA: "RO",
+  RORAIMA: "RR", "SANTA CATARINA": "SC", "SAO PAULO": "SP", SERGIPE: "SE", TOCANTINS: "TO",
+};
+const UFS = new Set(Object.values(UF_POR_ESTADO));
+
+/** "BA" ou "Bahia" -> "BA"; o que nao e UF, null. */
+export function ufDe(v: string | null | undefined): string | null {
+  const t = semAcento(v ?? "").toUpperCase().replace(/\s+/g, " ").trim();
+  if (/^[A-Z]{2}$/.test(t)) return UFS.has(t) ? t : null;
+  return UF_POR_ESTADO[t] ?? null;
 }
 
 /** Placa antiga (ABC1234) ou Mercosul (ABC1D23). */
@@ -268,7 +286,6 @@ export function ruaPeloPrimeiroNumero(v: string | null | undefined): Pick<Endere
 /** Uma linha da tabela: o texto de cada coluna (pelo nome do cabecalho). */
 export type LinhaDeTabela = Map<string, string>;
 
-const PARECE_VALOR = /^(R\$|\d[\d.,]*%?|-|%|FIPE)$/i;
 
 /**
  * Le uma TABELA pela posicao das palavras: o cabecalho (`colunas`, na ordem,

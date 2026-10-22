@@ -23,8 +23,13 @@ import { lerApolicePorto } from "../src/porto.js";
 import { lerApoliceBradesco } from "../src/compat.js";
 import { lerApoliceZurich } from "../src/compat.js";
 import { lerApoliceTokio } from "../src/tokio.js";
-import { lerResidencialHdi, lerResidencialMapfre, lerResidencialPorto, lerResidencialTokio } from "../src/residencial.js";
-import { lerVidaAllianz, lerVidaMapfre, lerVidaYelum } from "../src/vida.js";
+import { lerResidencialHdi } from "../src/hdi-residencial.js";
+import { lerResidencialMapfre } from "../src/mapfre-residencial.js";
+import { lerResidencialPorto } from "../src/porto-residencial.js";
+import { lerResidencialTokio } from "../src/tokio-residencial.js";
+import { lerVidaAllianz } from "../src/allianz-vida.js";
+import { lerVidaMapfre } from "../src/mapfre-vida.js";
+import { lerVidaYelum } from "../src/yelum-vida.js";
 import { extrairDocumento } from "../src/documento.js";
 
 type Partes = Record<string, string>;

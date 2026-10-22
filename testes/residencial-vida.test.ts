@@ -4,8 +4,13 @@
  */
 import { describe, expect, it } from "vitest";
 import { dinheiroPtBr, tabelaDeCoberturas } from "../src/tabela.js";
-import { lerResidencialHdi, lerResidencialMapfre, lerResidencialPorto, lerResidencialTokio } from "../src/residencial.js";
-import { lerVidaAllianz, lerVidaMapfre, lerVidaYelum } from "../src/vida.js";
+import { lerResidencialHdi } from "../src/hdi-residencial.js";
+import { lerResidencialMapfre } from "../src/mapfre-residencial.js";
+import { lerResidencialPorto } from "../src/porto-residencial.js";
+import { lerResidencialTokio } from "../src/tokio-residencial.js";
+import { lerVidaAllianz } from "../src/allianz-vida.js";
+import { lerVidaMapfre } from "../src/mapfre-vida.js";
+import { lerVidaYelum } from "../src/yelum-vida.js";
 
 describe("tabela de coberturas", () => {
   it("dinheiro pt-BR em centavos", () => {

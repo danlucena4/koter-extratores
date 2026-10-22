@@ -16,11 +16,10 @@
 
 import type { DataCia, Dinheiro, EnderecoLido as EnderecoParaRenovar } from "./tipos.js";
 import { enderecoDaApolice } from "./allianz.js";
-
-const vazio = (v: string | null | undefined): string | null => {
-  const s = (v ?? "").replace(/\s+/g, " ").trim();
-  return s.length > 0 ? s : null;
-};
+import { achar, data, datas, digitos, dinheiro, email, secao, vazio } from "./leitura.js";
+import { comGerais, fones, geraisVazios, pagamento, quadro, type DadosGerais } from "./gerais.js";
+import { pessoaCom, residencialVazio, type DocumentoExtraido } from "./modelo.js";
+import type { LinhaPosicionada } from "./pdf/motor.js";
 
 /** O valor de `Rotulo:` numa linha, ate o proximo rotulo conhecido da mesma linha. */
 function rotulo(linhas: readonly string[], re: RegExp, ate: RegExp | null = null): string | null {
@@ -37,11 +36,14 @@ function rotulo(linhas: readonly string[], re: RegExp, ate: RegExp | null = null
   return null;
 }
 
+/**
+ * O primeiro "R$ 1.234,56" do texto (a conversao e a de `dinheiro`, leitura.ts).
+ * 0,00 vira nulo (preco nao cobrado); o `original` leva o "R$", como sempre levou.
+ */
 export function dinheiroDoTexto(v: string | null | undefined): Dinheiro | null {
   const m = /R\$\s*([\d.]+,\d{2})/.exec(v ?? "");
-  if (m === null) return null;
-  const centavos = Number((m[1] as string).replace(/\./g, "").replace(",", ""));
-  return Number.isFinite(centavos) && centavos > 0 ? { centavos, moeda: "BRL", original: `R$ ${m[1]}` } : null;
+  const d = m === null ? null : dinheiro(m[1]);
+  return m === null || d === null || d.centavos === 0 ? null : { ...d, original: `R$ ${m[1]}` };
 }
 
 /** "RUA X, 123 - apto - BAIRRO - 00000-000 - CIDADE/UF" -> endereco. */
@@ -170,4 +172,80 @@ export function lerApoliceResidencialAllianz(linhas: readonly string[], numeroSu
     lmi_basica: basica?.lmi ?? null,
     assistencia,
   };
+}
+
+/* ---------------------------------------------------------- dados gerais */
+
+/**
+ * Allianz Residência: "Produto | Ramo: 14 - Residência Digital Tipo de
+ * residência: Casa Habitual Alvenaria", "Tipo de Seguro:", "Tipo de
+ * contratação: X Limite máximo de garantia da Apólice: R$ Y", "Há Telhado de
+ * Isopainel?: Não", Proposta, Data de emissão, Vigência, Tel/E-mail do
+ * segurado, INFORMAÇÕES DE PAGAMENTO ("Cartão de Crédito Preço líquido: R$ X"
+ * / "em 10 parcelas" / "Total a pagar" + "R$ Y") e as CLÁUSULAS.
+ */
+export function geraisResidencialAllianz(linhas: readonly string[]): DadosGerais {
+  const g = geraisVazios();
+  const iSeu = linhas.findIndex((l) => /^SUAS INFORMA/i.test(l.trim()));
+  const contato = quadro(iSeu < 0 ? [] : linhas.slice(iSeu, iSeu + 6), ["CPF/CNPJ", "Tel", "E-mail"]);
+  const vig = datas(linhas.find((l) => /^Vigência:/i.test(l)));
+  const iForma = linhas.findIndex((l) => /^Forma de pagamento\b/i.test(l.trim()));
+  const formaLinha = iForma < 0 ? "" : (linhas[iForma + 1] ?? "");
+  /* "Selecione" e o campo do formulario sem escolha: nao e forma de pagamento. */
+  const forma = vazio(formaLinha.replace(/\s*Preço líquido:.*$/i, "").replace(/^Selecione$/i, ""));
+  const parcelas = Number(achar(linhas, /^em (\d{1,2}) parcelas?\b/i));
+  const iTotal = linhas.findIndex((l) => /^Total a pagar$/i.test(l.trim()));
+  const tipo = achar(linhas, /Tipo de resid[eê]ncia:\s*(.+)$/i);
+  const clausulas = secao(linhas, /^CLÁUSULAS$/, /^Página \d/i, 40)
+    .map((l) => /^(Cláusula\b.*?):?$/.exec(l.trim())?.[1])
+    .filter((c): c is string => c !== undefined);
+  const respostas = linhas
+    .map((l) => /^(Há .+?\?):\s*(\S.*)$/.exec(l.trim()))
+    .filter((m): m is RegExpExecArray => m !== null)
+    .map((m) => ({ pergunta: m[1] as string, resposta: (m[2] as string).trim() }));
+  /* O preco 0,00 (endosso sem cobranca) nao e o premio da apolice. */
+  const naoZero = (d: Dinheiro | null) => (d === null || d.centavos === 0 ? null : d);
+
+  g.produto = achar(linhas, /^Produto \| Ramo:\s*(.+?)\s+Tipo de resid/i);
+  g.tipo_seguro = achar(linhas, /^Tipo de Seguro:\s*(\S.*)$/i);
+  g.proposta = digitos(achar(linhas, /Proposta Nº:\s*(\d+)/i)) || null;
+  g.emissao = data(achar(linhas, /^Data de emissão:\s*(\d{2}\/\d{2}\/\d{4})/i));
+  g.vigencia_inicio = vig[0] ?? null;
+  g.vigencia_fim = vig[1] ?? null;
+  g.premio_liquido = naoZero(dinheiro(achar([formaLinha], /Preço líquido:\s*(R\$\s*[\d.]+,\d{2})/i)));
+  g.premio_total = iTotal < 0 ? null : naoZero(dinheiro(linhas[iTotal + 1]));
+  g.pagamento = pagamento(forma, Number.isFinite(parcelas) && parcelas > 0 ? parcelas : null);
+  g.clausulas = clausulas;
+  g.segurado = { telefones: fones(contato.get("Tel")), email: email(contato.get("E-mail")) };
+  g.residencial = {
+    bem_segurado: achar(linhas, /^Tipo de contratação:\s*(.+?)\s+Limite máximo/i),
+    lmg: dinheiro(achar(linhas, /Limite máximo de garantia da Apólice:\s*(R\$\s*[\d.]+,\d{2})/i)),
+    tipo_construcao: tipo === null ? null : vazio(/\b(Alvenaria|Madeira|Mista)\b/i.exec(tipo)?.[1]),
+    /* "Casa Condomínio ..." e casa em condominio; "Casa ..." sem a palavra nao e; apartamento a Allianz nao diz. */
+    condominio_fechado: tipo === null ? null : /Condom[íi]nio/i.test(tipo) ? true : /^Casa\b/i.test(tipo) ? false : null,
+    valor_de_novo: clausulas.some((c) => /valor de novo/i.test(c)) ? true : null,
+    plano_assistencia: achar(linhas, /^Assist[eê]ncia 24h\s+(.+?)\s+R\$\s*[\d.]+,\d{2}\s*$/i),
+    respostas,
+  };
+  return g;
+}
+/* ------------------------------------------------------- modelo unico */
+
+/** A apolice no modelo unico: o quadro e a OFERTA ESCOLHIDA (com preco e participacao por cobertura) + os dados gerais. */
+export function documentoResidencialAllianz(doc: DocumentoExtraido, pos: readonly LinhaPosicionada[], numero: string): DocumentoExtraido | null {
+  const linhas = pos.map((l) => l.texto);
+  const a = lerApoliceResidencialAllianz(linhas, numero);
+  if (a === null) return null;
+  const lido: DocumentoExtraido = {
+    ...doc,
+    vigencia_fim: a.vigencia_fim,
+    segurado: pessoaCom({ nome: a.segurado_nome, documento: a.segurado_documento, endereco: a.segurado_endereco }),
+    coberturas: a.coberturas.map((c) => ({ descricao: c.descricao, valor: c.lmi, limite: null, premio: c.premio, franquia: c.franquia })),
+    franquias: a.coberturas
+      .filter((c) => c.franquia !== null)
+      .map((c) => ({ descricao: c.descricao, tipo: c.franquia, valor: dinheiro(/R\$\s*([\d.]+,\d{2})/.exec(c.franquia ?? "")?.[1]) })),
+    assistencias: a.assistencia === null ? [] : [a.assistencia],
+    residencial: { ...residencialVazio(), imovel: a.imovel, tipo_imovel: a.tipo_residencia, ocupacao: a.ocupacao, lmi_basica: a.lmi_basica },
+  };
+  return comGerais(lido, geraisResidencialAllianz(linhas));
 }

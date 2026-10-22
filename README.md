@@ -48,20 +48,34 @@ proposta), lê o número impresso e devolve tudo num formato só (`DocumentoExtr
   beneficiários (nome, CPF, nascimento, parentesco, %; o nome fica nulo quando a seguradora o
   quebra dentro da célula).
 
-Em residencial e vida, os dados gerais (vigência, proposta, emissão, prêmios, pagamento,
-franquias, contatos do segurado) saem de `src/gerais.ts`, por cima do que o leitor de cada
-seguradora já lê (o do leitor vence campo a campo).
+Em vida, `premio_liquido` e `premio_total` são os da periodicidade impressa
+(`vida.periodicidade_premio`): a MAPFRE imprime o prêmio **mensal**, a Allianz o anual.
 
 | Seguradora | Auto | Endosso | Proposta | Residencial | Vida |
 |---|---|---|---|---|---|
-| MAPFRE | ✔ | | ✔ | ✔ | ✔ |
-| Porto / Itaú / Azul | ✔ (inclui Proteção Combinada Itaú) | | | ✔ (Porto) | |
-| Allianz | ✔ | ✔ | ✔ | ✔ | ✔ |
+| MAPFRE | ✔ | ✔ (residencial) | ✔ | ✔ | ✔ |
+| Porto / Itaú / Azul | ✔ (inclui Proteção Combinada Itaú) | ✔ (residencial) | | ✔ (Porto) | |
+| Allianz | ✔ | ✔ (auto, residencial, vida) | ✔ | ✔ | ✔ |
 | Yelum / Aliro | ✔ | | | | ✔ (Yelum) |
 | Tokio Marine | ✔ | | | ✔ | |
 | Zurich | ✔ | | | | |
 | Bradesco | ✔ (dois layouts) | | | | |
 | HDI | ✔ (PDF e documento HTML) | ✔ | | ✔ | |
+
+### Onde fica cada coisa
+
+- `src/documento.ts`: reconhecer (seguradora, ramo, tipo, número) e despachar para o leitor.
+- Um leitor por seguradora e ramo, todos com a mesma assinatura
+  `(doc, linhasPosicionadas, numero) => DocumentoExtraido | null`: `<cia>-auto.ts`,
+  `<cia>-residencial.ts`, `<cia>-vida.ts`, `mapfre-proposta.ts`.
+- Em residencial e vida, cada arquivo traz o leitor do quadro (`lerResidencial<Cia>`,
+  `lerVida<Cia>`, que continuam exportados com a forma antiga) e os dados gerais
+  (`gerais<...><Cia>`: vigência, prêmios, pagamento, franquias, contatos...), juntados por
+  `comGerais` (`src/gerais.ts`): o do leitor vence campo a campo.
+- `src/leitura.ts`: as peças comuns (data, dinheiro, CPF, CEP, UF, telefone, rótulos,
+  seções, quadros e tabelas pela coluna). Um conversor de dinheiro só (`dinheiro`);
+  `dinheiroPtBr` (célula inteira) e `dinheiroDoTexto` (Allianz, com "R$") são formas de achar.
+- `src/modelo.ts`: o modelo único e os construtores de vazio.
 
 Pier, Youse e Justos não têm renovação própria.
 

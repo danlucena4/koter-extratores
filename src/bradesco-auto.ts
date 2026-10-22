@@ -36,7 +36,6 @@ import {
   quadroPorColuna,
   perguntasERespostas,
   placa,
-  secao,
   simNao,
   telefones,
   vazio,

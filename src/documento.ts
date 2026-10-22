@@ -15,26 +15,19 @@
  * e esse; sem ela, a trava e o proprio numero impresso (o leitor de cada cia
  * confere que o documento e dele). O que cada leitor nao acha sai nulo.
  */
-import { ehApoliceResidencialAllianz, lerApoliceResidencialAllianz } from "./allianz-residencial.js";
+import { documentoResidencialAllianz, ehApoliceResidencialAllianz } from "./allianz-residencial.js";
 import { numeroDoKit } from "./mapfre.js";
-import { linhasDoPdf, paginasDoPdf, pedacosDoPdf, type PedacoDeTexto } from "./pdf-texto.js";
-import { lerResidencialHdi, lerResidencialMapfre, lerResidencialPorto, lerResidencialTokio, type ResidencialLido } from "./residencial.js";
-import { lerVidaAllianz, lerVidaMapfre, lerVidaYelum, type VidaLida } from "./vida.js";
-import {
-  geraisResidencialAllianz,
-  geraisResidencialHdi,
-  geraisResidencialMapfre,
-  geraisResidencialPorto,
-  geraisResidencialTokio,
-  geraisVidaAllianz,
-  geraisVidaMapfre,
-  geraisVidaYelum,
-  type DadosGerais,
-} from "./gerais.js";
-import { dinheiroPtBr, type ItemDeCobertura } from "./tabela.js";
+import { linhasDoPdf, paginasDoPdf } from "./pdf-texto.js";
+import { documentoResidencialHdi } from "./hdi-residencial.js";
+import { documentoResidencialMapfre } from "./mapfre-residencial.js";
+import { documentoResidencialPorto } from "./porto-residencial.js";
+import { documentoResidencialTokio } from "./tokio-residencial.js";
+import { documentoVidaAllianz } from "./allianz-vida.js";
+import { documentoVidaMapfre } from "./mapfre-vida.js";
+import { documentoVidaYelum } from "./yelum-vida.js";
 
 export * from "./modelo.js";
-import { achar, digitos, dinheiro, posicionarTexto } from "./leitura.js";
+import { achar, digitos, posicionarTexto } from "./leitura.js";
 import { lerAutoAllianz, lerEndossoAllianz } from "./allianz-auto.js";
 import { lerAutoBradesco } from "./bradesco-auto.js";
 import { lerAutoHdi } from "./hdi-auto.js";
@@ -46,19 +39,10 @@ import { lerAutoYelum } from "./yelum-auto.js";
 import { lerAutoZurich } from "./zurich-auto.js";
 import type { LinhaPosicionada } from "./pdf/motor.js";
 import {
-  autoVazio,
-  cobertura,
-  condutor,
   documentoBase,
-  pessoaCom,
-  pessoaVazia,
-  residencialVazio,
-  vidaVazia,
-  type CoberturaExtraida,
   type DocumentoExtraido,
   type Identificacao,
   type OpcoesDeExtracao,
-  type PessoaExtraida,
   type RamoDoDocumento,
   type Seguradora,
   type TipoDoDocumento,
@@ -125,10 +109,28 @@ export function seguradoraDoDocumento(linhas: readonly string[]): { seguradora: 
 }
 
 /** Ramo e tipo pela forma do documento de cada cia. */
+/**
+ * O numero do ENDOSSO impresso em residencial e vida: "Nº Endosso: 1" /
+ * "Nº. do Endosso: 1" (Allianz, no rodape de cada pagina), "Endosso: 00000"
+ * (MAPFRE, zero na apolice), "Endosso nº: 1" (Porto), "Endosso 00.000..." no
+ * cabecalho (HDI). Sem rotulo, `null`.
+ */
+export function numeroDoEndosso(linhas: readonly string[]): number | null {
+  for (const l of linhas) {
+    const m = /(?:N[ºo°]\.?\s*(?:do\s+)?Endosso|^Endosso\s+n[ºo°]|\bEndosso)\s*:\s*(\d{1,6})\b/i.exec(l);
+    if (m !== null) return Number(m[1]);
+  }
+  return linhas.slice(0, 6).some((l) => /^Endosso\s+[\d.]+$/.test(l.trim())) ? 1 : null;
+}
+
 function ramoETipo(s: Seguradora, linhas: readonly string[]): { ramo: RamoDoDocumento | null; tipo: TipoDoDocumento | null; sinal: string } {
   const tem = (re: RegExp) => linhas.some((l) => re.test(l));
-  const res = (sinal: string) => ({ ramo: "residencial" as const, tipo: "apolice" as const, sinal });
-  const vida = (sinal: string) => ({ ramo: "vida" as const, tipo: "apolice" as const, sinal });
+  /* Residencial e vida: endosso quando o documento imprime o numero do endosso maior que zero. */
+  const endosso = numeroDoEndosso(linhas);
+  const tipoRv = endosso !== null && endosso > 0 ? ("endosso" as const) : ("apolice" as const);
+  const comEndosso = (sinal: string) => (tipoRv === "endosso" ? `${sinal}; endosso ${endosso}` : sinal);
+  const res = (sinal: string) => ({ ramo: "residencial" as const, tipo: tipoRv, sinal: comEndosso(sinal) });
+  const vida = (sinal: string) => ({ ramo: "vida" as const, tipo: tipoRv, sinal: comEndosso(sinal) });
   const auto = (sinal: string) => ({ ramo: "auto" as const, tipo: "apolice" as const, sinal });
   switch (s) {
     case "mapfre":
@@ -244,149 +246,40 @@ function numeroDaProposta(s: Seguradora, linhas: readonly string[]): string | nu
 
 /* ------------------------------------------------------------ extrair */
 
-/** Item da tabela de residencial/vida: o segundo valor da linha e o premio da cobertura. */
-const coberturaComPremio = (i: ItemDeCobertura): CoberturaExtraida => ({ ...cobertura(i), premio: dinheiroPtBr(i.outros_valores[0]) });
-
-function deResidencial(doc: DocumentoExtraido, r: ResidencialLido): DocumentoExtraido {
-  return {
-    ...doc,
-    segurado: pessoaCom({ nome: r.segurado_nome, documento: r.segurado_documento, endereco: r.segurado_endereco }),
-    coberturas: r.coberturas.map(coberturaComPremio),
-    assistencias: r.assistencia === null ? [] : [r.assistencia],
-    residencial: {
-      ...residencialVazio(),
-      imovel: r.imovel,
-      tipo_imovel: r.tipo_imovel,
-      ocupacao: r.ocupacao,
-      condominio_fechado: r.condominio_fechado,
-      lmi_basica: r.lmi_basica,
-    },
-  };
-}
-
-function deVida(doc: DocumentoExtraido, v: VidaLida): DocumentoExtraido {
-  return {
-    ...doc,
-    vigencia_fim: v.vigencia_fim,
-    segurado: pessoaCom({
-      nome: v.segurado_nome,
-      documento: v.segurado_documento,
-      nascimento: v.segurado_nascimento,
-      sexo: v.segurado_sexo,
-      estado_civil: v.segurado_estado_civil,
-      profissao: v.profissao,
-      renda: v.renda,
-      endereco: v.segurado_endereco,
-    }),
-    coberturas: v.coberturas.map(coberturaComPremio),
-    assistencias: v.assistencias,
-    vida: { ...vidaVazia(), renda: v.renda, capital_morte: v.capital_morte },
-  };
-}
-
-const semNulos = <T extends object>(o: Partial<T> | null | undefined): Partial<T> =>
-  Object.fromEntries(Object.entries(o ?? {}).filter(([, v]) => v !== null && v !== undefined && !(Array.isArray(v) && v.length === 0))) as Partial<T>;
-const normaNome = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim();
-
-/**
- * Junta os DADOS GERAIS ao que o leitor da cia ja leu: o do leitor vence
- * (campo a campo, inclusive no endereco); os gerais preenchem o que ficou
- * nulo. A franquia de cada cobertura vem da lista de franquias pelo nome.
- */
-export function comGerais(doc: DocumentoExtraido, g: DadosGerais): DocumentoExtraido {
-  const seg = doc.segurado ?? pessoaVazia();
-  const gs = g.segurado;
-  const juntos = { ...semNulos(gs.endereco ?? {}), ...semNulos(seg.endereco ?? {}) };
-  const segurado = pessoaCom({
-    ...semNulos(gs),
-    ...semNulos(seg),
-    telefones: [...seg.telefones, ...(gs.telefones ?? [])],
-    endereco: Object.keys(juntos).length === 0 ? null : { cep: null, logradouro: null, numero: null, complemento: null, bairro: null, cidade: null, uf: null, ...juntos },
-  });
-  const franquias = doc.franquias.length > 0 ? doc.franquias : g.franquias;
-  const daCobertura = (c: CoberturaExtraida) => {
-    const f = franquias.find((x) => normaNome(x.descricao) === normaNome(c.descricao));
-    if (f === undefined) return null;
-    /* Texto que ja traz o minimo ("10% ... minimo de R$ 600,00") vai como esta; valor + percentual (MAPFRE) vai "500,00 (10%)". */
-    if (f.valor !== null && f.tipo !== null && !f.tipo.includes(f.valor.original)) return `${f.valor.original} (${f.tipo})`;
-    return f.tipo ?? f.valor?.original ?? null;
-  };
-  return {
-    ...doc,
-    produto: doc.produto ?? g.produto,
-    emissao: doc.emissao ?? g.emissao,
-    renovacao_de: doc.renovacao_de ?? g.renovacao_de,
-    tipo_seguro: doc.tipo_seguro ?? g.tipo_seguro,
-    proposta: doc.proposta ?? g.proposta,
-    item: doc.item ?? g.item,
-    vigencia_inicio: doc.vigencia_inicio ?? g.vigencia_inicio,
-    vigencia_fim: doc.vigencia_fim ?? g.vigencia_fim,
-    premio_liquido: doc.premio_liquido ?? g.premio_liquido,
-    premio_total: doc.premio_total ?? g.premio_total,
-    pagamento: doc.pagamento ?? g.pagamento,
-    franquias,
-    clausulas: [...doc.clausulas, ...g.clausulas],
-    assistencias: [...doc.assistencias, ...g.assistencias],
-    segurado,
-    coberturas: doc.coberturas.map((c) => (c.franquia === null ? { ...c, franquia: daCobertura(c) } : c)),
-    residencial: doc.residencial === null ? null : { ...residencialVazio(), ...semNulos(g.residencial), ...semNulos(doc.residencial) },
-    vida: doc.vida === null ? null : { ...vidaVazia(), ...semNulos(g.vida), ...semNulos(doc.vida) },
-  };
-}
-
 /** O leitor da cia, ja com a trava (numero impresso ou o pedido). */
-function lerPelaCia(
-  doc: DocumentoExtraido,
-  pos: readonly LinhaPosicionada[],
-  pedacos: () => PedacoDeTexto[][],
-  numero: string,
-): DocumentoExtraido | null {
+function lerPelaCia(doc: DocumentoExtraido, pos: readonly LinhaPosicionada[], numero: string): DocumentoExtraido | null {
   const linhas = pos.map((l) => l.texto);
   const s = doc.seguradora;
-  void pedacos;
   if (doc.ramo === "residencial") {
-    const r =
-      s === "mapfre" ? lerResidencialMapfre(linhas, numero)
-      : s === "hdi" ? lerResidencialHdi(linhas)
-      : s === "tokio" ? lerResidencialTokio(linhas, numero)
-      : s === "porto" || s === "itau" || s === "azul" ? lerResidencialPorto(linhas, numero)
-      : null;
-    if (r !== null) {
-      const nomes = r.coberturas.map((c) => c.descricao);
-      const g =
-        s === "mapfre" ? geraisResidencialMapfre(linhas)
-        : s === "hdi" ? geraisResidencialHdi(linhas)
-        : s === "tokio" ? geraisResidencialTokio(linhas, nomes)
-        : geraisResidencialPorto(linhas, nomes);
-      return comGerais(deResidencial(doc, r), g);
+    switch (s) {
+      case "mapfre":
+        return documentoResidencialMapfre(doc, pos, numero);
+      case "hdi":
+        return documentoResidencialHdi(doc, pos);
+      case "tokio":
+        return documentoResidencialTokio(doc, pos, numero);
+      case "porto":
+      case "itau":
+      case "azul":
+        return documentoResidencialPorto(doc, pos, numero);
+      case "allianz":
+        return documentoResidencialAllianz(doc, pos, numero);
+      default:
+        return null;
     }
-    if (s === "allianz") {
-      const a = lerApoliceResidencialAllianz(linhas, numero);
-      if (a === null) return null;
-      const lido: DocumentoExtraido = {
-        ...doc,
-        vigencia_fim: a.vigencia_fim,
-        segurado: pessoaCom({ nome: a.segurado_nome, documento: a.segurado_documento, endereco: a.segurado_endereco }),
-        coberturas: a.coberturas.map((c) => ({ descricao: c.descricao, valor: c.lmi, limite: null, premio: c.premio, franquia: c.franquia })),
-        franquias: a.coberturas
-          .filter((c) => c.franquia !== null)
-          .map((c) => ({ descricao: c.descricao, tipo: c.franquia, valor: dinheiro(/R\$\s*([\d.]+,\d{2})/.exec(c.franquia ?? "")?.[1]) })),
-        assistencias: a.assistencia === null ? [] : [a.assistencia],
-        residencial: { ...residencialVazio(), imovel: a.imovel, tipo_imovel: a.tipo_residencia, ocupacao: a.ocupacao, lmi_basica: a.lmi_basica },
-      };
-      return comGerais(lido, geraisResidencialAllianz(linhas));
-    }
-    return null;
   }
   if (doc.ramo === "vida") {
-    const v =
-      s === "mapfre" ? lerVidaMapfre(linhas, numero)
-      : s === "allianz" ? lerVidaAllianz(linhas, numero)
-      : s === "yelum" || s === "aliro" ? lerVidaYelum(linhas, numero)
-      : null;
-    if (v === null) return null;
-    const g = s === "mapfre" ? geraisVidaMapfre(linhas) : s === "allianz" ? geraisVidaAllianz(pos) : geraisVidaYelum(pos);
-    return comGerais(deVida(doc, v), g);
+    switch (s) {
+      case "mapfre":
+        return documentoVidaMapfre(doc, pos, numero);
+      case "allianz":
+        return documentoVidaAllianz(doc, pos, numero);
+      case "yelum":
+      case "aliro":
+        return documentoVidaYelum(doc, pos, numero);
+      default:
+        return null;
+    }
   }
   if (doc.ramo !== "auto" || doc.tipo === "proposta") return null;
   if (doc.tipo === "endosso" && s === "allianz") return lerEndossoAllianz(doc, linhas, numero);
@@ -450,9 +343,7 @@ export function extrairDocumento(entrada: Uint8Array | readonly string[], opcoes
   const numero = pedido.length > 0 ? digitos(opcoes.numero_apolice) : (id.numero_apolice ?? "");
   const doc = documentoBase(id);
   if (numero.length === 0 && id.seguradora !== "hdi") return doc;
-  let cache: PedacoDeTexto[][] | null = null;
-  const pedacos = () => (cache ??= bytes === null ? [] : pedacosDoPdf(bytes));
-  const lido = lerPelaCia(doc, pos.length > 0 ? pos : posicionarTexto(linhas), pedacos, numero);
+  const lido = lerPelaCia(doc, pos.length > 0 ? pos : posicionarTexto(linhas), numero);
   return lido === null ? doc : acabamento(lido);
 }
 

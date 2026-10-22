@@ -8,16 +8,19 @@
  * A linha com valores fecha um item; a linha sem valor logo depois e a
  * continuacao da descricao dele.
  */
+import { dinheiro } from "./leitura.js";
 import type { Dinheiro } from "./tipos.js";
 
 const VALOR = /(?:^|\s)(?:R\$\s*)?((?:\d{1,3}(?:\.\d{3})+|\d+),\d{2})(?=\s|$)/g;
 
-/** "123.456,78" -> centavos, com o texto cru. */
+/**
+ * "123.456,78" (o texto INTEIRO, com ou sem "R$") -> centavos, com o texto
+ * cru. Estrito: e o valor de uma celula; para achar dinheiro dentro de um
+ * texto, `dinheiro` (leitura.ts), que e quem converte nos dois casos.
+ */
 export function dinheiroPtBr(v: string | null | undefined): Dinheiro | null {
   const m = /^\s*(?:R\$\s*)?((?:\d{1,3}(?:\.\d{3})+|\d+),\d{2})\s*$/.exec(v ?? "");
-  if (m === null) return null;
-  const [inteiro, centavos] = (m[1] as string).replace(/\./g, "").split(",");
-  return { centavos: Number(inteiro) * 100 + Number(centavos), moeda: "BRL", original: m[1] as string };
+  return m === null ? null : dinheiro(m[1]);
 }
 
 export interface ItemDeCobertura {

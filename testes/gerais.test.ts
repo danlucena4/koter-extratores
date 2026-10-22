@@ -4,20 +4,15 @@
  * cobranca de 2026-10-20 (nomes, documentos e enderecos inventados).
  */
 import { describe, expect, it } from "vitest";
-import {
-  dataPorExtenso,
-  franquiasEntremeadas,
-  geraisResidencialAllianz,
-  geraisResidencialHdi,
-  geraisResidencialMapfre,
-  geraisResidencialPorto,
-  geraisResidencialTokio,
-  geraisVidaAllianz,
-  geraisVidaMapfre,
-  geraisVidaYelum,
-  parcelasDaGrade,
-  telefone,
-} from "../src/gerais.js";
+import { dataPorExtenso, franquiasEntremeadas, parcelasDaGrade, telefone } from "../src/gerais.js";
+import { geraisResidencialAllianz } from "../src/allianz-residencial.js";
+import { geraisResidencialHdi } from "../src/hdi-residencial.js";
+import { geraisResidencialMapfre } from "../src/mapfre-residencial.js";
+import { geraisResidencialPorto } from "../src/porto-residencial.js";
+import { geraisResidencialTokio } from "../src/tokio-residencial.js";
+import { geraisVidaAllianz } from "../src/allianz-vida.js";
+import { geraisVidaMapfre } from "../src/mapfre-vida.js";
+import { geraisVidaYelum } from "../src/yelum-vida.js";
 import { extrairDocumento } from "../src/documento.js";
 import { posicionarTexto } from "../src/leitura.js";
 

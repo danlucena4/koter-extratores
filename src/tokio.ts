@@ -23,6 +23,7 @@
  * RESIDENCIAL da Tokio tem outro quadro e nao passa (o leitor e de auto).
  */
 import type { DataCia, EnderecoLido } from "./tipos.js";
+import { achar, digitos, vazio } from "./leitura.js";
 
 export interface ApoliceTokioLida {
   numero: string;
@@ -51,21 +52,6 @@ export interface ApoliceTokioLida {
   chassi: string | null;
   /** "Veículo: <descricao>" (o modelo como a Tokio escreve). */
   veiculo_descricao: string | null;
-}
-
-const vazio = (v: string | null | undefined): string | null => {
-  const s = (v ?? "").replace(/\s+/g, " ").trim();
-  return s.length > 0 ? s : null;
-};
-const digitos = (v: string | null | undefined) => (v ?? "").replace(/\D/g, "");
-
-/** A primeira linha que casa; o grupo 1. */
-function achar(linhas: readonly string[], re: RegExp): string | null {
-  for (const l of linhas) {
-    const m = re.exec(l);
-    if (m !== null) return vazio(m[1]);
-  }
-  return null;
 }
 
 /** "Sim"/"Não" no comeco da linha logo abaixo da que casa com a pergunta. */
