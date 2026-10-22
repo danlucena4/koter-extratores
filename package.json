@@ -1,6 +1,6 @@
 {
   "name": "koter-extratores",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "private": true,
   "description": "Extracao de dados de documentos de seguradoras (PDF de apolice e proposta) para a renovacao do Koter. Puro: sem rede, sem portal, sem sessao.",
   "type": "module",

@@ -182,7 +182,8 @@ export function geraisResidencialPorto(linhas: readonly string[], coberturas: re
   const tipo = achar(linhas, /^Tipo de resid[êe]ncia:\s*(.+)$/i);
   const iServ = linhas.findIndex((l) => /^SERVIÇOS CONTRATADOS$/i.test(l.trim()));
 
-  g.produto = achar(linhas.slice(0, 12), /^((?:Seguro Residencial|Porto Resid[êe]ncia)\s+\S+?)\.?$/i);
+  /* "Seguro Residencial Habitual", "Porto Residência Veraneio" e "Residêncial Premium" (assim, com acento, na capa). */
+  g.produto = achar(linhas.slice(0, 12), /^((?:Seguro Residencial|Porto Resid[êe]ncia|Resid[êe]ncial)\s+\S+?)\.?$/i);
   g.tipo_seguro = achar(linhas, /^Apólice:\s*\*(.+?)\*/);
   g.proposta = digitos(achar(linhas, /N[uú]mero (?:da )?proposta:\s*([\d ]+)/i)) || null;
   g.vigencia_inicio = vig[0] ?? null;

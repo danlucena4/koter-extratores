@@ -54,6 +54,10 @@ describe("endosso em residencial e vida", () => {
     "CNPJ: 61.198.164/0001-60.",
   ];
 
+  it("Porto: o titulo da capa 'Residêncial Premium' e o produto", () => {
+    expect(extrairDocumento(["Residêncial Premium", ...porto("Apólice: *Renovação* Número da proposta: 19 16000001").slice(1)])?.produto).toBe("Residêncial Premium");
+  });
+
   it("Porto: endosso nº 1 e endosso, e lido inteiro; a apolice continua apolice", () => {
     expect(identificarDocumento(porto("Apólice: *Renovação* Número da proposta: 19 16000001"))).toMatchObject({ seguradora: "porto", ramo: "residencial", tipo: "apolice" });
     const doc = extrairDocumento(porto("Endosso nº: 1 Número da proposta: 82 64600001"));
