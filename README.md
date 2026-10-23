@@ -49,12 +49,12 @@ proposta), lê o número impresso e devolve tudo num formato só (`DocumentoExtr
   quebra dentro da célula).
 
 Em vida, `premio_liquido` e `premio_total` são os da periodicidade impressa
-(`vida.periodicidade_premio`): a MAPFRE imprime o prêmio **mensal**, a Allianz o anual.
+(`vida.periodicidade_premio`): a MAPFRE imprime o prêmio **mensal**; Allianz, Tokio e Porto, o anual.
 
 | Seguradora | Auto | Endosso | Proposta | Residencial | Vida |
 |---|---|---|---|---|---|
 | MAPFRE | ✔ | ✔ (residencial) | ✔ | ✔ | ✔ |
-| Porto / Itaú / Azul | ✔ (inclui Proteção Combinada Itaú) | ✔ (residencial) | | ✔ (Porto) | |
+| Porto / Itaú / Azul | ✔ (inclui Proteção Combinada Itaú) | ✔ (residencial) | | ✔ (Porto) | ✔ (Porto: Vida Individual e Acidentes Pessoais, dois layouts) |
 | Allianz | ✔ | ✔ (auto, residencial, vida) | ✔ | ✔ | ✔ |
 | Yelum / Aliro | ✔ | | | | ✔ (Yelum) |
 | Tokio Marine | ✔ | | | ✔ | ✔ (Vida Individual, Homem, Mulher) |

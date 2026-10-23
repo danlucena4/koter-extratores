@@ -29,6 +29,7 @@ export * from "./mapfre-vida.js";
 export * from "./allianz-vida.js";
 export * from "./yelum-vida.js";
 export * from "./tokio-vida.js";
+export * from "./porto-vida.js";
 export * from "./gerais.js";
 export * from "./documento.js";
 export * from "./compat.js";

@@ -26,6 +26,7 @@ import { documentoVidaAllianz } from "./allianz-vida.js";
 import { documentoVidaMapfre } from "./mapfre-vida.js";
 import { documentoVidaYelum } from "./yelum-vida.js";
 import { documentoVidaTokio, ehApoliceVidaTokio } from "./tokio-vida.js";
+import { documentoVidaPorto, ehApoliceVidaPorto, numeroDaApoliceVidaPorto } from "./porto-vida.js";
 
 export * from "./modelo.js";
 import { achar, digitos, posicionarTexto } from "./leitura.js";
@@ -152,6 +153,7 @@ function ramoETipo(s: Seguradora, linhas: readonly string[]): { ramo: RamoDoDocu
     case "porto":
     case "itau":
     case "azul":
+      if (ehApoliceVidaPorto(linhas)) return vida("Porto Vida Individual");
       /* A "Proteção Combinada Itaú" tem residência E veículo: e auto (com o bloco residencial junto). */
       if (tem(/^Tipo de resid[êe]ncia:/i) && !tem(/^(Descrição|Dados) do veículo segurado/i)) return res("Tipo de residência");
       return auto("apolice Porto/Itau/Azul (auto)");
@@ -194,6 +196,7 @@ export function numeroImpresso(s: Seguradora, ramo: RamoDoDocumento | null, linh
     case "porto":
     case "itau":
     case "azul": {
+      if (ramo === "vida") return d(numeroDaApoliceVidaPorto(linhas));
       const m = linhas.map((l) => /(?:Ap[oó]lice:\s*)?((?:\d+\s+)+\d+)\s+Item:/i.exec(l)?.[1]).find((x) => x !== undefined);
       if (m !== undefined) return d(m.trim().split(/\s+/).pop() ?? null);
       const r = achar(linhas, /N[uú]mero da ap[oó]lice:\s*([\d ]+?)(?:\s+(?:Ramo|N[uú]mero)\b.*)?$/i);
@@ -280,6 +283,8 @@ function lerPelaCia(doc: DocumentoExtraido, pos: readonly LinhaPosicionada[], nu
         return documentoVidaAllianz(doc, pos, numero);
       case "tokio":
         return documentoVidaTokio(doc, pos, numero);
+      case "porto":
+        return documentoVidaPorto(doc, pos, numero);
       case "yelum":
       case "aliro":
         return documentoVidaYelum(doc, pos, numero);
